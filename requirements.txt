@@ -1,0 +1,24 @@
+# CDP Thin Bridge Dependencies
+# Minimal set of packages for Chrome DevTools Protocol bridge
+
+# Core web framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# WebSocket client for CDP connection
+websocket-client==1.7.0
+
+# System monitoring and process management
+psutil==5.9.6
+
+# HTTP client for Chrome DevTools discovery
+requests==2.31.0
+
+# Configuration management
+python-dotenv==1.0.0
+
+# Development dependencies (optional)
+# pytest==7.4.0
+# pytest-cov==4.1.0
+# black==23.7.0
+# flake8==6.0.0

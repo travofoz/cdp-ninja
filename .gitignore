@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Screenshots and debug output
+*.png
+*.jpg
+*.jpeg
+debug_*.html
+debug_*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chrome debug profiles
+chrome-debug-profile*/
+
+# Config files that might contain secrets
+config.local.json
+.env.local
+
+# Test coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Windows
+*.exe
+*.bat.bak
+
+# Temporary files
+temp/
+tmp/
+*.tmp
