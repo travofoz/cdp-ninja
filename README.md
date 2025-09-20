@@ -1,8 +1,8 @@
-# CDP Thin Bridge 🚀
+# Debug Ninja 🥷
 
 A lightweight Chrome DevTools Protocol bridge that gives you powerful browser debugging capabilities without the bloat of Puppeteer or Playwright.
 
-## Why CDP Thin Bridge?
+## Why Debug Ninja?
 
 - **No Chromium Download**: Uses your existing Chrome installation (saves 300MB)
 - **Minimal Dependencies**: Only 16MB of Python packages vs 350MB+ for alternatives
@@ -32,27 +32,69 @@ installed    protocol
 
 ## Quick Start
 
-### Windows Installation
+### Installation
 
-```powershell
+#### Cross-Platform (Recommended)
+```bash
 # Clone repository
-git clone https://github.com/yourusername/cdp-thin-bridge
-cd cdp-thin-bridge
+git clone https://github.com/yourusername/debug-ninja
+cd debug-ninja
 
-# Run installer (creates venv, installs deps, sets up Chrome)
+# Run cross-platform installer (auto-detects your OS)
+python setup/install.py
+
+# Start bridge
+./start_bridge.sh          # Linux/macOS
+# OR
+.\start_bridge.bat         # Windows
+```
+
+#### Platform-Specific Installation
+
+**Windows:**
+```powershell
+# Run PowerShell installer
 .\setup\setup_windows.ps1
 
 # Start bridge
 .\start_bridge.bat
 ```
 
-### Connect from Remote
-
+**Linux/macOS:**
 ```bash
-# SSH tunnel from Linux/Mac to Windows machine
-ssh -L 8888:localhost:8888 user@windows-machine
+# Run bash installer
+./setup/setup_unix.sh
 
-# Test connection
+# Start bridge
+./start_bridge.sh
+```
+
+### SSH Tunnel Setup
+
+Debug Ninja supports both tunnel directions depending on your setup:
+
+#### Option A: Access Remote Debug Ninja (Local Forward)
+When Debug Ninja runs on a remote machine and you want to access it locally:
+```bash
+# From your local machine
+ssh -L 8888:localhost:8888 user@remote-machine
+
+# Now access bridge locally
+curl http://localhost:8888/cdp/status
+```
+
+#### Option B: Expose Local Debug Ninja (Reverse Forward)
+When Debug Ninja runs locally and Claude Code/remote tools need access:
+```bash
+# From your local machine (where Chrome/Debug Ninja runs)
+ssh -R 8888:localhost:8888 user@claude-code-vps
+
+# Remote system can now access your local bridge
+curl http://localhost:8888/cdp/status
+```
+
+#### Test Connection
+```bash
 curl http://localhost:8888/cdp/status
 ```
 
@@ -211,36 +253,22 @@ Task(
 ## Project Structure
 
 ```
-cdp-thin-bridge/
+debug-ninja/
 ├── core/
 │   ├── __init__.py
-│   ├── cdp_client.py        # WebSocket CDP client
-│   ├── event_manager.py     # Event queuing & filtering
-│   └── command_executor.py  # Command handling
+│   └── cdp_client.py        # WebSocket CDP client with auto-reconnect
 ├── api/
 │   ├── __init__.py
-│   ├── server.py            # Flask application
-│   ├── routes/
-│   │   ├── cdp.py          # CDP endpoints
-│   │   ├── system.py       # System/Windows endpoints
-│   │   └── debug.py        # High-level debug operations
-│   └── middleware.py        # Auth, CORS, validation
+│   └── server.py            # Flask application with 40+ endpoints
 ├── setup/
-│   ├── setup_windows.ps1   # Windows installer
-│   ├── setup_linux.sh      # Linux SSH setup
-│   └── requirements.txt    # Python dependencies
+│   ├── setup_windows.ps1   # Windows PowerShell installer
+│   └── setup_unix.sh       # Linux/macOS bash installer
 ├── agent/
-│   ├── claude_agent.md     # Agent specification
-│   └── test_scenarios.json # Test cases for agent
-├── tests/
-│   ├── test_cdp_client.py
-│   ├── test_api.py
-│   └── test_integration.py
+│   └── claude_agent.md     # Claude Code agent specification
 ├── examples/
-│   ├── debug_nextjs.py     # Next.js debugging examples
-│   ├── capture_network.py  # Network monitoring
-│   └── form_automation.py  # Form interaction
-├── config.json             # Default configuration
+│   ├── basic_usage.py      # Getting started examples
+│   └── debug_nextjs.py     # Next.js debugging workflows
+├── requirements.txt        # Python dependencies (16MB total)
 ├── README.md
 ├── LICENSE
 └── setup.py
@@ -248,7 +276,7 @@ cdp-thin-bridge/
 
 ## Comparison with Alternatives
 
-| Feature | CDP Thin Bridge | Playwright | Puppeteer | Selenium |
+| Feature | Debug Ninja | Playwright | Puppeteer | Selenium |
 |---------|----------------|------------|-----------|----------|
 | Browser Download | 0 MB (uses your Chrome) | 300MB | 170MB | 0 MB |
 | Python Package | 16MB | 50MB | N/A | 15MB |
