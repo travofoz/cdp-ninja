@@ -755,11 +755,12 @@ def main():
 
     args = parser.parse_args()
 
-    print("CDP Thin Bridge Server")
+    print("🥷 CDP Ninja Server")
     print("=" * 40)
     print(f"Chrome DevTools Port: {args.cdp_port}")
     print(f"Bridge API Port: {args.bridge_port}")
     print(f"Debug Mode: {args.debug}")
+    print("⚠️  DANGEROUS: No input validation")
     print("=" * 40)
 
     server = CDPBridgeServer(

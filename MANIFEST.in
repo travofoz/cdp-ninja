@@ -1,0 +1,16 @@
+include README.md
+include LICENSE
+include SECURITY.md
+include requirements.txt
+include pyproject.toml
+
+recursive-include setup *.ps1 *.sh
+recursive-include agent *.md
+recursive-include examples *.py
+recursive-include cdp_ninja *.py
+
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .git*

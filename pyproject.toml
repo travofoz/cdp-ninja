@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cdp-ninja"
+version = "1.0.0"
+description = "🥷 Lightweight Chrome DevTools Protocol bridge for browser debugging and security testing"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "CDP Ninja Contributors", email = "dev@example.com"},
+]
+keywords = [
+    "chrome", "devtools", "debugging", "browser", "automation",
+    "cdp", "testing", "performance", "network", "console",
+    "security", "fuzzing", "vulnerability", "penetration-testing"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+    "Topic :: Security",
+    "Topic :: System :: Networking :: Monitoring",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "websocket-client>=1.7.0",
+    "psutil>=5.9.6",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "flake8>=6.0.0",
+    "build>=0.10.0",
+    "twine>=4.0.0",
+]
+windows = [
+    "pywin32>=306; sys_platform=='win32'",
+]
+
+[project.urls]
+Homepage = "https://github.com/travofoz/cdp-ninja"
+Repository = "https://github.com/travofoz/cdp-ninja"
+Issues = "https://github.com/travofoz/cdp-ninja/issues"
+Documentation = "https://github.com/travofoz/cdp-ninja/wiki"
+
+[project.scripts]
+cdp-ninja = "cdp_ninja.server:main"
+cdp-ninja-setup = "cdp_ninja.setup.install:main"
+
+[tool.setuptools.packages.find]
+include = ["cdp_ninja*"]
+
+[tool.setuptools.package-data]
+cdp_ninja = [
+    "*.md",
+    "*.txt",
+    "*.json",
+    "setup/*.ps1",
+    "setup/*.sh",
+    "agent/*.md",
+    "examples/*.py"
+]

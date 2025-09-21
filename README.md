@@ -2,6 +2,10 @@
 
 A lightweight Chrome DevTools Protocol bridge that gives you powerful browser debugging capabilities without the bloat of Puppeteer or Playwright.
 
+[![PyPI version](https://badge.fury.io/py/cdp-ninja.svg)](https://badge.fury.io/py/cdp-ninja)
+[![Python Support](https://img.shields.io/pypi/pyversions/cdp-ninja.svg)](https://pypi.org/project/cdp-ninja/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## ⚠️ SECURITY WARNING ⚠️
 
 **CDP Ninja is intentionally dangerous for security testing and fuzzing. It allows:**
@@ -48,39 +52,43 @@ installed    protocol
 
 ### Installation
 
-#### Cross-Platform (Recommended)
+#### Option 1: Pip Install (Recommended)
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/cdp-ninja
-cd cdp-ninja
+# Install from PyPI
+pip install cdp-ninja
 
-# Run cross-platform installer (auto-detects your OS)
-python setup/install.py
+# Start CDP Ninja server
+cdp-ninja
 
-# Start bridge
-./start_bridge.sh          # Linux/macOS
-# OR
-.\start_bridge.bat         # Windows
+# Or with custom settings
+cdp-ninja --bridge-port 9999 --cdp-port 9222 --debug
 ```
 
-#### Platform-Specific Installation
+#### Option 2: From Source
+```bash
+# Clone repository
+git clone https://github.com/travofoz/cdp-ninja
+cd cdp-ninja
+
+# Install in development mode
+pip install -e .
+
+# Start bridge
+cdp-ninja
+```
+
+#### Option 3: Platform-Specific Setup Scripts
 
 **Windows:**
 ```powershell
 # Run PowerShell installer
-.\setup\setup_windows.ps1
-
-# Start bridge
-.\start_bridge.bat
+.\cdp_ninja\setup\setup_windows.ps1
 ```
 
 **Linux/macOS:**
 ```bash
 # Run bash installer
-./setup/setup_unix.sh
-
-# Start bridge
-./start_bridge.sh
+./cdp_ninja/setup/setup_unix.sh
 ```
 
 ### SSH Tunnel Setup
@@ -109,6 +117,10 @@ curl http://localhost:8888/cdp/status
 
 #### Test Connection
 ```bash
+# Test CDP Ninja is running
+curl http://localhost:8888/health
+
+# Check CDP connection status
 curl http://localhost:8888/cdp/status
 ```
 
