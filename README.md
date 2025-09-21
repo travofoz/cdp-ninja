@@ -1,10 +1,10 @@
-# Debug Ninja 🥷
+# CDP Ninja 🥷
 
 A lightweight Chrome DevTools Protocol bridge that gives you powerful browser debugging capabilities without the bloat of Puppeteer or Playwright.
 
 ## ⚠️ SECURITY WARNING ⚠️
 
-**Debug Ninja is intentionally dangerous for security testing and fuzzing. It allows:**
+**CDP Ninja is intentionally dangerous for security testing and fuzzing. It allows:**
 
 - 🚨 **No Input Validation**: Send malformed selectors, injection attempts, null bytes, XSS payloads
 - 🚨 **No Rate Limiting**: Flood with requests, infinite loops, memory bombs
@@ -14,9 +14,9 @@ A lightweight Chrome DevTools Protocol bridge that gives you powerful browser de
 
 **Philosophy**: If we can break it with malformed data, it has bugs. This tool crashes things on purpose.
 
-**Only use Debug Ninja in secure, isolated environments for testing purposes.**
+**Only use CDP Ninja in secure, isolated environments for testing purposes.**
 
-## Why Debug Ninja?
+## Why CDP Ninja?
 
 - **No Chromium Download**: Uses your existing Chrome installation (saves 300MB)
 - **Minimal Dependencies**: Only 16MB of Python packages vs 350MB+ for alternatives
@@ -51,8 +51,8 @@ installed    protocol
 #### Cross-Platform (Recommended)
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/debug-ninja
-cd debug-ninja
+git clone https://github.com/yourusername/cdp-ninja
+cd cdp-ninja
 
 # Run cross-platform installer (auto-detects your OS)
 python setup/install.py
@@ -85,10 +85,10 @@ python setup/install.py
 
 ### SSH Tunnel Setup
 
-Debug Ninja supports both tunnel directions depending on your setup:
+CDP Ninja supports both tunnel directions depending on your setup:
 
-#### Option A: Access Remote Debug Ninja (Local Forward)
-When Debug Ninja runs on a remote machine and you want to access it locally:
+#### Option A: Access Remote CDP Ninja (Local Forward)
+When CDP Ninja runs on a remote machine and you want to access it locally:
 ```bash
 # From your local machine
 ssh -L 8888:localhost:8888 user@remote-machine
@@ -97,10 +97,10 @@ ssh -L 8888:localhost:8888 user@remote-machine
 curl http://localhost:8888/cdp/status
 ```
 
-#### Option B: Expose Local Debug Ninja (Reverse Forward)
-When Debug Ninja runs locally and Claude Code/remote tools need access:
+#### Option B: Expose Local CDP Ninja (Reverse Forward)
+When CDP Ninja runs locally and Claude Code/remote tools need access:
 ```bash
-# From your local machine (where Chrome/Debug Ninja runs)
+# From your local machine (where Chrome/CDP Ninja runs)
 ssh -R 8888:localhost:8888 user@claude-code-vps
 
 # Remote system can now access your local bridge
@@ -299,7 +299,7 @@ $env:ENABLE_POWERSHELL="true"  # PowerShell
 
 ## Testing Philosophy
 
-Debug Ninja is designed for **security testing and fuzzing**:
+CDP Ninja is designed for **security testing and fuzzing**:
 
 - **No Input Validation**: All endpoints accept ANY data to test application limits
 - **Intentional Code Injection**: JavaScript string interpolation allows arbitrary code execution for testing
@@ -309,16 +309,16 @@ Debug Ninja is designed for **security testing and fuzzing**:
 - **Security Research**: XSS, injection attempts, protocol violations are allowed
 - **Browser Vulnerability Discovery**: Test how browsers handle malformed CSS selectors and JavaScript
 
-**The "vulnerabilities" in Debug Ninja are features, not bugs.**
+**The "vulnerabilities" in CDP Ninja are features, not bugs.**
 
-**If Debug Ninja can break your application with malformed data, your application has bugs.**
+**If CDP Ninja can break your application with malformed data, your application has bugs.**
 
 This tool is intentionally permissive to help find vulnerabilities and edge cases through aggressive testing.
 
 ## Project Structure
 
 ```
-debug-ninja/
+cdp-ninja/
 ├── core/
 │   ├── __init__.py
 │   ├── cdp_client.py        # WebSocket CDP client with auto-reconnect
@@ -352,7 +352,7 @@ debug-ninja/
 
 ## Comparison with Alternatives
 
-| Feature | Debug Ninja | Playwright | Puppeteer | Selenium |
+| Feature | CDP Ninja | Playwright | Puppeteer | Selenium |
 |---------|----------------|------------|-----------|----------|
 | Browser Download | 0 MB (uses your Chrome) | 300MB | 170MB | 0 MB |
 | Python Package | 16MB | 50MB | N/A | 15MB |

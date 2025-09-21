@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-    CDP Thin Bridge - Windows Installation Script
+    CDP Ninja - Windows Installation Script
 
 .DESCRIPTION
-    Complete installation script for CDP Thin Bridge on Windows.
+    Complete installation script for CDP Ninja on Windows.
     Sets up Python virtual environment, installs dependencies, configures Chrome,
     and creates shortcuts for easy startup.
 
 .PARAMETER InstallDir
-    Installation directory (default: $env:USERPROFILE\cdp-thin-bridge)
+    Installation directory (default: $env:USERPROFILE\cdp-ninja)
 
 .PARAMETER CDPPort
     Chrome DevTools Protocol port (default: 9222)
@@ -45,7 +45,7 @@
 #>
 
 param(
-    [string]$InstallDir = "$env:USERPROFILE\cdp-thin-bridge",
+    [string]$InstallDir = "$env:USERPROFILE\cdp-ninja",
     [int]$CDPPort = 9222,
     [int]$BridgePort = 8888,
     [switch]$SkipChrome,
@@ -398,9 +398,9 @@ function Create-StartupScripts {
     # Batch file for easy startup
     $batchScript = @"
 @echo off
-title CDP Thin Bridge
+title CDP Ninja
 cd /d "$Dir"
-echo Starting CDP Thin Bridge...
+echo Starting CDP Ninja...
 echo.
 call venv\Scripts\activate.bat
 echo Virtual environment activated
@@ -416,7 +416,7 @@ pause
 
     # PowerShell script for advanced users
     $psScript = @"
-# CDP Thin Bridge Startup Script
+# CDP Ninja Startup Script
 Set-Location "$Dir"
 & .\venv\Scripts\Activate.ps1
 python -m api.server
@@ -428,10 +428,10 @@ python -m api.server
     # Create desktop shortcut
     try {
         $WshShell = New-Object -ComObject WScript.Shell
-        $shortcut = `$WshShell.CreateShortcut("$env:USERPROFILE\Desktop\CDP Thin Bridge.lnk")
+        $shortcut = `$WshShell.CreateShortcut("$env:USERPROFILE\Desktop\CDP Ninja.lnk")
         $shortcut.TargetPath = $batchFile
         $shortcut.WorkingDirectory = $Dir
-        $shortcut.Description = "CDP Thin Bridge - Browser Debugging Tool"
+        $shortcut.Description = "CDP Ninja - Browser Debugging Tool"
         $shortcut.IconLocation = "chrome.exe,0"
         $shortcut.Save()
 
@@ -498,7 +498,7 @@ function Show-InstallationSummary {
     $summary = @"
 
 ========================================
-🎉 CDP Thin Bridge Installation Complete!
+🎉 CDP Ninja Installation Complete!
 ========================================
 
 Installation Directory: $Dir
@@ -506,7 +506,7 @@ Bridge URL: http://localhost:$BridgePort
 Chrome DevTools: http://localhost:$CDPPort
 
 🚀 Quick Start:
-1. Double-click 'CDP Thin Bridge' on your desktop
+1. Double-click 'CDP Ninja' on your desktop
 2. Or run: $Dir\start_bridge.bat
 
 🔗 For Remote Access (SSH Tunnel):

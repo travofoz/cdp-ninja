@@ -1,8 +1,8 @@
-# Security Notice for Debug Ninja 🥷
+# Security Notice for CDP Ninja 🥷
 
 ## Intentional Design Philosophy
 
-Debug Ninja is **intentionally insecure by design** for security testing and vulnerability research.
+CDP Ninja is **intentionally insecure by design** for security testing and vulnerability research.
 
 ## "Vulnerabilities" That Are Actually Features
 
@@ -42,12 +42,12 @@ file:///etc/passwd
 
 ## Security Boundaries
 
-### What Debug Ninja DOES protect:
+### What CDP Ninja DOES protect:
 - PowerShell execution behind `ENABLE_POWERSHELL` environment variable
 - Clear documentation of dangerous capabilities
 - Crash reporting to understand failure modes
 
-### What Debug Ninja does NOT protect:
+### What CDP Ninja does NOT protect:
 - Input validation (intentionally disabled)
 - Rate limiting (intentionally disabled)
 - JavaScript injection (intentionally enabled)
@@ -72,7 +72,7 @@ file:///etc/passwd
 
 ## Disclosure Policy
 
-If you discover that Debug Ninja can be used to exploit systems in ways beyond its intended scope, please:
+If you discover that CDP Ninja can be used to exploit systems in ways beyond its intended scope, please:
 
 1. **Do NOT** report "JavaScript injection" or "no input validation" - these are intentional features
 2. **DO** report genuine security issues in the control mechanisms (e.g., PowerShell toggle bypass)
@@ -81,11 +81,11 @@ If you discover that Debug Ninja can be used to exploit systems in ways beyond i
 
 ## Legal Notice
 
-Debug Ninja is provided for legitimate security testing purposes only. Users are responsible for:
+CDP Ninja is provided for legitimate security testing purposes only. Users are responsible for:
 
 - Obtaining proper authorization before testing
 - Complying with all applicable laws and regulations
 - Using the tool only in controlled, isolated environments
 - Understanding the intentional security implications
 
-**By using Debug Ninja, you acknowledge that it is designed to be dangerous and that you will use it responsibly.**
+**By using CDP Ninja, you acknowledge that it is designed to be dangerous and that you will use it responsibly.**

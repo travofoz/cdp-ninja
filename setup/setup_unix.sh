@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# Debug Ninja - Linux/macOS Setup Script
+# CDP Ninja - Linux/macOS Setup Script
 # Lightweight Chrome DevTools Protocol bridge installation
 #
 # Usage:
 #   ./setup_unix.sh [options]
 #
 # Options:
-#   --install-dir DIR     Installation directory (default: ~/debug-ninja)
+#   --install-dir DIR     Installation directory (default: ~/cdp-ninja)
 #   --cdp-port PORT       Chrome DevTools port (default: 9222)
 #   --bridge-port PORT    HTTP API bridge port (default: 8888)
 #   --skip-chrome         Skip Chrome setup and configuration
@@ -19,7 +19,7 @@
 set -e  # Exit on any error
 
 # Default configuration
-INSTALL_DIR="$HOME/debug-ninja"
+INSTALL_DIR="$HOME/cdp-ninja"
 CDP_PORT=9222
 BRIDGE_PORT=8888
 SKIP_CHROME=false
@@ -61,7 +61,7 @@ USAGE:
     $0 [OPTIONS]
 
 OPTIONS:
-    --install-dir DIR     Installation directory (default: ~/debug-ninja)
+    --install-dir DIR     Installation directory (default: ~/cdp-ninja)
     --cdp-port PORT       Chrome DevTools port (default: 9222)
     --bridge-port PORT    HTTP API bridge port (default: 8888)
     --skip-chrome         Skip Chrome setup and configuration
@@ -75,7 +75,7 @@ EXAMPLES:
     ./setup_unix.sh
 
     # Custom installation directory
-    ./setup_unix.sh --install-dir /opt/debug-ninja
+    ./setup_unix.sh --install-dir /opt/cdp-ninja
 
     # Skip Chrome setup (manual Chrome start required)
     ./setup_unix.sh --skip-chrome
@@ -350,7 +350,7 @@ setup_chrome() {
     sleep 2
 
     # Create clean debug profile
-    local debug_profile="/tmp/debug-ninja-chrome-profile"
+    local debug_profile="/tmp/cdp-ninja-chrome-profile"
     if [[ -d "$debug_profile" ]]; then
         rm -rf "$debug_profile"
     fi
@@ -441,7 +441,7 @@ EOF
 
     # Create desktop entry for Linux
     if [[ $(detect_os) == "linux" ]] && [[ -d "$HOME/.local/share/applications" ]]; then
-        cat > "$HOME/.local/share/applications/debug-ninja.desktop" << EOF
+        cat > "$HOME/.local/share/applications/cdp-ninja.desktop" << EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
@@ -478,12 +478,12 @@ create_config() {
         "debug": false
     },
     "chrome": {
-        "profile_dir": "/tmp/debug-ninja-chrome-profile",
+        "profile_dir": "/tmp/cdp-ninja-chrome-profile",
         "additional_args": []
     },
     "logging": {
         "level": "INFO",
-        "file": "logs/debug-ninja.log"
+        "file": "logs/cdp-ninja.log"
     }
 }
 EOF
@@ -547,7 +547,7 @@ EOF
     if [[ "$chrome_configured" != true ]]; then
         echo -e "${YELLOW}⚠️  Chrome Setup Skipped:${NC}"
         echo "To enable Chrome debugging manually:"
-        echo "  google-chrome --remote-debugging-port=$cdp_port --user-data-dir=/tmp/debug-ninja-chrome-profile $START_URL"
+        echo "  google-chrome --remote-debugging-port=$cdp_port --user-data-dir=/tmp/cdp-ninja-chrome-profile $START_URL"
         echo ""
     fi
 }

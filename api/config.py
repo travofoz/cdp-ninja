@@ -1,5 +1,5 @@
 """
-Debug Ninja Configuration
+CDP Ninja Configuration
 NO validation, NO sanitization, just raw configuration options
 User controls their own destiny
 """
@@ -10,9 +10,9 @@ from typing import Optional
 
 
 @dataclass
-class DebugNinjaConfig:
+class CDPNinjaConfig:
     """
-    Configuration for Debug Ninja - Raw debugging power
+    Configuration for CDP Ninja - Raw debugging power
 
     @class DebugNinjaConfig
     @property {int} cdp_port - Chrome DevTools Protocol port
@@ -56,11 +56,11 @@ class DebugNinjaConfig:
 
         if self.bind_host != '127.0.0.1':
             print("🌐 WARNING: Binding to non-localhost interface")
-            print(f"   Debug Ninja accessible from network on {self.bind_host}:{self.bridge_port}")
+            print(f"   CDP Ninja accessible from network on {self.bind_host}:{self.bridge_port}")
             print("   Anyone on your network can control your browser!")
             print()
 
-        print(f"🥷 Debug Ninja Config:")
+        print(f"🥷 CDP Ninja Config:")
         print(f"   CDP Port: {self.cdp_port}")
         print(f"   Bridge Port: {self.bridge_port}")
         print(f"   Bind Host: {self.bind_host}")
@@ -69,13 +69,13 @@ class DebugNinjaConfig:
         print()
 
 
-def get_config() -> DebugNinjaConfig:
+def get_config() -> CDPNinjaConfig:
     """
     Get the current configuration
 
-    @returns {DebugNinjaConfig} Current configuration instance
+    @returns {CDPNinjaConfig} Current configuration instance
     """
-    return DebugNinjaConfig()
+    return CDPNinjaConfig()
 
 
 def print_environment_help():
@@ -83,7 +83,7 @@ def print_environment_help():
     Print help for environment variables
     """
     print("""
-🥷 Debug Ninja Environment Variables:
+🥷 CDP Ninja Environment Variables:
 
 Core Settings:
   CDP_PORT=9222              Chrome DevTools Protocol port

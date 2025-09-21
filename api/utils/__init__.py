@@ -1,5 +1,5 @@
 """
-Debug Ninja Utilities
+CDP Ninja Utilities
 Raw debugging utilities with no safety features
 """
 

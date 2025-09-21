@@ -1,5 +1,5 @@
 """
-Debug Ninja Route Modules
+CDP Ninja Route Modules
 Raw pass-through routes with no validation or sanitization
 Each module handles a specific aspect of browser debugging
 """

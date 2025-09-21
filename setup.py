@@ -1,5 +1,5 @@
 """
-CDP Thin Bridge Setup Script
+CDP Ninja Setup Script
 Lightweight Chrome DevTools Protocol bridge for browser debugging
 """
 
@@ -34,18 +34,18 @@ except FileNotFoundError:
     ]
 
 setup(
-    name="cdp-thin-bridge",
+    name="cdp-ninja",
     version="1.0.0",
-    author="CDP Thin Bridge Contributors",
+    author="CDP Ninja Contributors",
     author_email="dev@example.com",
     description="Lightweight Chrome DevTools Protocol bridge for browser debugging",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/cdp-thin-bridge",
+    url="https://github.com/yourusername/cdp-ninja",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/cdp-thin-bridge/issues",
-        "Source": "https://github.com/yourusername/cdp-thin-bridge",
-        "Documentation": "https://github.com/yourusername/cdp-thin-bridge/wiki",
+        "Bug Reports": "https://github.com/yourusername/cdp-ninja/issues",
+        "Source": "https://github.com/yourusername/cdp-ninja",
+        "Documentation": "https://github.com/yourusername/cdp-ninja/wiki",
     },
     packages=find_packages(),
     classifiers=[
@@ -78,8 +78,8 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "cdp-bridge=api.server:main",
-            "cdp-bridge-setup=setup.install:main",
+            "cdp-ninja=api.server:main",
+            "cdp-ninja-setup=setup.install:main",
         ],
     },
     include_package_data=True,

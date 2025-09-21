@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Debug Ninja - Cross-Platform Installation Script
+CDP Ninja - Cross-Platform Installation Script
 Automatically detects platform and runs appropriate installer
 """
 
