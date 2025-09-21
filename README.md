@@ -2,6 +2,20 @@
 
 A lightweight Chrome DevTools Protocol bridge that gives you powerful browser debugging capabilities without the bloat of Puppeteer or Playwright.
 
+## ⚠️ SECURITY WARNING ⚠️
+
+**Debug Ninja is intentionally dangerous for security testing and fuzzing. It allows:**
+
+- 🚨 **No Input Validation**: Send malformed selectors, injection attempts, null bytes, XSS payloads
+- 🚨 **No Rate Limiting**: Flood with requests, infinite loops, memory bombs
+- 🚨 **PowerShell Execution**: Remote code execution when `ENABLE_POWERSHELL=true`
+- 🚨 **Any URL Navigation**: javascript:, data:, file:// protocols allowed
+- 🚨 **Raw DOM Manipulation**: HTML injection, script injection, attribute modification
+
+**Philosophy**: If we can break it with malformed data, it has bugs. This tool crashes things on purpose.
+
+**Only use Debug Ninja in secure, isolated environments for testing purposes.**
+
 ## Why Debug Ninja?
 
 - **No Chromium Download**: Uses your existing Chrome installation (saves 300MB)
@@ -124,13 +138,25 @@ with open("screenshot.png", "wb") as f:
 response = requests.get("http://localhost:8888/cdp/screenshot?full_page=true")
 ```
 
-### Execute JavaScript
+### Execute JavaScript (⚠️ No Validation)
 ```python
-# Run JavaScript in page context
+# Normal JavaScript execution
 response = requests.post("http://localhost:8888/cdp/execute",
                          json={"code": "document.querySelector('#result').innerText"})
 result = response.json()
-print(result.get('result', {}).get('value'))
+
+# ⚠️ Security Testing Examples (will attempt execution):
+# Infinite loop test
+requests.post("http://localhost:8888/cdp/execute",
+              json={"code": "while(true) { console.log('crash test'); }"})
+
+# Memory bomb test
+requests.post("http://localhost:8888/cdp/execute",
+              json={"code": "let a = []; while(true) a.push('x'.repeat(1000000));"})
+
+# XSS injection test
+requests.post("http://localhost:8888/cdp/execute",
+              json={"code": "alert('XSS test: ' + document.cookie)"})
 ```
 
 ### Monitor Network Traffic
@@ -145,9 +171,9 @@ requests.post("http://localhost:8888/cdp/network/block",
               json={"patterns": ["*://*.doubleclick.net/*", "*://analytics.google.com/*"]})
 ```
 
-### Fill Forms
+### Fill Forms (⚠️ No Sanitization)
 ```python
-# Fill multiple form fields
+# Normal form filling
 requests.post("http://localhost:8888/cdp/form/fill", json={
     "fields": {
         "#email": "test@example.com",
@@ -156,9 +182,19 @@ requests.post("http://localhost:8888/cdp/form/fill", json={
     }
 })
 
-# Submit form
+# ⚠️ Security Testing Examples:
+# Malformed selectors and values with null bytes
+requests.post("http://localhost:8888/cdp/form/fill", json={
+    "fields": {
+        ">>>invalid_selector<<<": "test\0null\nbytes",
+        "#input": "x" * 1000000,  # Huge value test
+        "#other": "'; DROP TABLE users; --"  # SQL injection attempt
+    }
+})
+
+# Test malformed form submission
 requests.post("http://localhost:8888/cdp/form/submit",
-              json={"selector": "#login-form"})
+              json={"selector": ">>>invalid<<<"})
 ```
 
 ### Bug Reproduction Workflow
@@ -240,15 +276,44 @@ Task(
 - `POST /cdp/network/throttle` - Simulate slow network
 - `GET /cdp/network/clear` - Clear network cache
 
-### System Integration (Windows)
-- `POST /system/powershell` - Execute PowerShell command
-- `GET /system/processes` - List processes
-- `GET /system/chrome/profiles` - List Chrome profiles
+### System Integration (⚠️ DANGEROUS)
+- `POST /system/execute` - Execute RAW PowerShell/CMD/Bash commands (requires `ENABLE_POWERSHELL=true`)
+- `GET /system/info` - System information and capabilities
+- `GET /system/processes` - Browser process information
+- `GET /system/chrome/info` - Chrome debugging information
+
+**⚠️ PowerShell/Command Execution Setup:**
+```bash
+# Enable dangerous system commands (REQUIRED for /system/execute)
+export ENABLE_POWERSHELL=true  # Linux/macOS
+# OR
+set ENABLE_POWERSHELL=true     # Windows CMD
+# OR
+$env:ENABLE_POWERSHELL="true"  # PowerShell
+```
 
 ### Advanced Debugging
 - `POST /debug/reproduce` - Automated bug reproduction
 - `GET /debug/performance` - Performance metrics
 - `GET /debug/memory` - Memory usage analysis
+
+## Testing Philosophy
+
+Debug Ninja is designed for **security testing and fuzzing**:
+
+- **No Input Validation**: All endpoints accept ANY data to test application limits
+- **Intentional Code Injection**: JavaScript string interpolation allows arbitrary code execution for testing
+- **Crash Reporting**: When malformed data crashes Chrome, that's valuable debugging data
+- **Raw Pass-Through**: Commands are sent exactly as provided to Chrome DevTools
+- **Edge Case Testing**: Null bytes, huge values, malformed selectors are encouraged
+- **Security Research**: XSS, injection attempts, protocol violations are allowed
+- **Browser Vulnerability Discovery**: Test how browsers handle malformed CSS selectors and JavaScript
+
+**The "vulnerabilities" in Debug Ninja are features, not bugs.**
+
+**If Debug Ninja can break your application with malformed data, your application has bugs.**
+
+This tool is intentionally permissive to help find vulnerabilities and edge cases through aggressive testing.
 
 ## Project Structure
 
@@ -256,10 +321,21 @@ Task(
 debug-ninja/
 ├── core/
 │   ├── __init__.py
-│   └── cdp_client.py        # WebSocket CDP client with auto-reconnect
+│   ├── cdp_client.py        # WebSocket CDP client with auto-reconnect
+│   └── cdp_pool.py          # Connection pooling for performance
 ├── api/
 │   ├── __init__.py
-│   └── server.py            # Flask application with 40+ endpoints
+│   ├── server.py            # Main Flask application
+│   ├── config.py            # Configuration with PowerShell toggle
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── browser.py       # RAW browser interaction (click, type, screenshot)
+│   │   ├── debugging.py     # RAW JavaScript execution and console access
+│   │   ├── navigation.py    # RAW navigation (any URL, any protocol)
+│   │   ├── dom.py           # RAW DOM manipulation (no sanitization)
+│   │   └── system.py        # RAW system commands (PowerShell/Bash)
+│   └── utils/
+│       └── error_reporter.py # Crash telemetry (not prevention)
 ├── setup/
 │   ├── setup_windows.ps1   # Windows PowerShell installer
 │   └── setup_unix.sh       # Linux/macOS bash installer

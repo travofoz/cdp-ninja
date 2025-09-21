@@ -12,7 +12,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
-from queue import Queue, Empty
+from queue import Queue, Empty, Full
 from threading import Thread, Lock, Event
 from typing import Dict, List, Optional, Any, Callable
 import requests
@@ -156,7 +156,8 @@ class CDPConnection:
         if self.ws:
             try:
                 self.ws.close()
-            except:
+            except Exception as e:
+                logger.debug(f"Error closing WebSocket: {e}")
                 pass
             self.connected.clear()
             self.ws = None
@@ -313,7 +314,8 @@ class CDPClient:
         # Add to general queue (non-blocking, drop if full)
         try:
             self.event_queue.put_nowait(event)
-        except:
+        except Full:
+            logger.debug(f"Event queue full, dropping {event.method} event")
             pass
 
         # Trigger registered handlers
@@ -461,7 +463,8 @@ def test_chrome_connection(port: int = 9222) -> bool:
         response = requests.get(f"http://localhost:{port}/json", timeout=2)
         tabs = response.json()
         return len(tabs) > 0
-    except:
+    except (requests.RequestException, ValueError, KeyError) as e:
+        logger.debug(f"Chrome connection test failed on port {port}: {e}")
         return False
 
 
