@@ -81,7 +81,7 @@ class CDPConnection:
         try:
             response = requests.get(
                 f"http://{self.host}:{self.port}/json",
-                timeout=5
+                timeout=30  # Increased timeout for Windows
             )
             response.raise_for_status()
             tabs = response.json()
