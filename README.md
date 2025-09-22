@@ -50,12 +50,23 @@ installed    protocol
 
 ## Quick Start
 
+### Prerequisites
+
+1. **Chrome/Chromium** installed on your system
+2. **Python 3.8+** installed
+3. **pip** package manager
+
 ### Installation
 
-#### Option 1: Pip Install (Recommended)
+#### Option 1: Install from GitHub (Recommended)
 ```bash
-# Install from PyPI
-pip install cdp-ninja
+# Install directly from GitHub
+pip install git+https://github.com/travofoz/cdp-ninja.git
+
+# Start Chrome with debugging enabled (separate terminal)
+chrome --remote-debugging-port=9222
+# OR on Windows:
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
 
 # Start CDP Ninja server
 cdp-ninja
@@ -374,30 +385,73 @@ cdp-ninja/
 | Remote Debugging | ✅ SSH tunnel | ❌ Complex | ❌ Complex | ✅ Grid |
 | Learning Curve | Low (REST API) | High | High | Medium |
 
-## Troubleshooting
+## Common Issues & Solutions
 
-### Chrome Not Found
+### Installation Issues
+
+**Problem: `ModuleNotFoundError` when running `cdp-ninja`**
+```bash
+# Solution: Force reinstall with no cache
+pip install --force-reinstall --no-cache-dir git+https://github.com/travofoz/cdp-ninja.git
+```
+
+**Problem: `ImportError: cannot import name 'config'`**
+```bash
+# Solution: You have an old version, update to latest
+pip uninstall cdp-ninja -y
+pip install git+https://github.com/travofoz/cdp-ninja.git
+```
+
+### Connection Issues
+
+**Problem: Chrome DevTools connection failed**
+```bash
+# Solution 1: Make sure Chrome is running with debugging port
+chrome --remote-debugging-port=9222
+
+# Solution 2: Check if port 9222 is already in use
+netstat -an | grep 9222  # Linux/macOS
+netstat -an | findstr 9222  # Windows
+
+# Solution 3: Try a different port
+chrome --remote-debugging-port=9223
+cdp-ninja --cdp-port 9223
+```
+
+**Problem: Bridge server won't start on port 8888**
+```bash
+# Solution: Use a different port
+cdp-ninja --bridge-port 9999
+```
+
+### Windows-Specific Issues
+
+**Problem: PowerShell script execution disabled**
 ```powershell
-# Specify Chrome path manually
-.\setup\setup_windows.ps1 -ChromePath "C:\Program Files\Google\Chrome\Application\chrome.exe"
+# Solution: Enable script execution (run as Administrator)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Connection Failed
+**Problem: Python not in PATH**
+```powershell
+# Solution: Use full path to Python
+C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe -m pip install git+https://github.com/travofoz/cdp-ninja.git
+```
+
+### Verification Steps
+
 ```bash
-# Check if Chrome is running with debug port
+# 1. Verify Chrome is accessible
 curl http://localhost:9222/json
+# Should return JSON with browser tabs
 
-# Check if bridge is running
+# 2. Verify CDP Ninja is running
 curl http://localhost:8888/health
-```
+# Should return {"status": "ok"}
 
-### SSH Tunnel Issues
-```bash
-# Test local connection first
+# 3. Test CDP connection
 curl http://localhost:8888/cdp/status
-
-# Use verbose SSH
-ssh -v -L 8888:localhost:8888 user@windows-machine
+# Should return connection details
 ```
 
 ## Contributing
