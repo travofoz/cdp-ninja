@@ -7,9 +7,9 @@ import logging
 import subprocess
 import platform
 from flask import Blueprint, jsonify, request
-from core import get_global_pool
-from api.utils.error_reporter import crash_reporter
-from api.config import config
+from cdp_ninja.core import get_global_pool
+from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.config import config
 
 logger = logging.getLogger(__name__)
 system_routes = Blueprint('system', __name__)

@@ -6,8 +6,8 @@ No limits, no validation - everything goes through raw
 
 import logging
 from flask import Blueprint, jsonify, request, current_app
-from core import get_global_pool
-from api.utils.error_reporter import crash_reporter
+from cdp_ninja.core import get_global_pool
+from cdp_ninja.utils.error_reporter import crash_reporter
 
 logger = logging.getLogger(__name__)
 debugging_routes = Blueprint('debugging', __name__)

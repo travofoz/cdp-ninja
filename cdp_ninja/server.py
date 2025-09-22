@@ -19,9 +19,10 @@ from flask_cors import CORS
 import psutil
 
 # Import our CDP client
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.cdp_client import CDPClient, CDPEvent
+from cdp_ninja.core.cdp_client import CDPClient, CDPEvent
+from cdp_ninja.core.cdp_pool import CDPConnectionPool, get_global_pool, initialize_global_pool, shutdown_global_pool
+from cdp_ninja.config import config
+from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes, dom_routes, system_routes
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

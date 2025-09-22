@@ -5,8 +5,8 @@ No validation, no sanitization - test all edge cases
 
 import logging
 from flask import Blueprint, jsonify, request
-from core import get_global_pool
-from api.utils.error_reporter import crash_reporter
+from cdp_ninja.core import get_global_pool
+from cdp_ninja.utils.error_reporter import crash_reporter
 
 logger = logging.getLogger(__name__)
 dom_routes = Blueprint('dom', __name__)
