@@ -64,9 +64,9 @@ installed    protocol
 pip install git+https://github.com/travofoz/cdp-ninja.git
 
 # Start Chrome with debugging enabled (separate terminal)
-chrome --remote-debugging-port=9222
-# OR on Windows:
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+chrome --remote-debugging-port=9222 --remote-allow-origins=*
+# OR on Windows (use PowerShell):
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="C:\temp\chrome-debug"
 
 # Start CDP Ninja server
 cdp-ninja
@@ -404,18 +404,25 @@ pip install git+https://github.com/travofoz/cdp-ninja.git
 
 ### Connection Issues
 
-**Problem: Chrome DevTools connection failed**
+**Problem: Chrome DevTools connection failed (403 Forbidden)**
 ```bash
-# Solution 1: Make sure Chrome is running with debugging port
-chrome --remote-debugging-port=9222
+# Solution: Chrome requires --remote-allow-origins flag
+# Kill all Chrome processes first
+Get-Process chrome | Stop-Process -Force  # Windows PowerShell
+pkill chrome  # Linux/macOS
 
-# Solution 2: Check if port 9222 is already in use
-netstat -an | grep 9222  # Linux/macOS
-netstat -an | findstr 9222  # Windows
+# Start Chrome with correct flags
+chrome --remote-debugging-port=9222 --remote-allow-origins=*
 
-# Solution 3: Try a different port
-chrome --remote-debugging-port=9223
-cdp-ninja --cdp-port 9223
+# Windows PowerShell:
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="C:\temp\chrome-debug"
+```
+
+**Problem: Connection timeout on Windows**
+```bash
+# Chrome can be slow to respond on Windows
+# This is fixed in v1.0.1+ (timeout increased to 30s)
+pip install --upgrade git+https://github.com/travofoz/cdp-ninja.git
 ```
 
 **Problem: Bridge server won't start on port 8888**
