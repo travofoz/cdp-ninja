@@ -78,6 +78,10 @@ def get_config() -> CDPNinjaConfig:
     return CDPNinjaConfig()
 
 
+# Global config instance
+config = CDPNinjaConfig()
+
+
 def print_environment_help():
     """
     Print help for environment variables
