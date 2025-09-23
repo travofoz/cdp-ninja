@@ -1,7 +1,7 @@
 # CDP Browser Debugger Agent
 
 ## Agent Type
-`cdp-debugger`
+`cdp-ninja`
 
 ## Description
 Browser debugging specialist using Chrome DevTools Protocol bridge. Captures network requests, console logs, executes JavaScript, takes screenshots, interacts with page elements. Use PROACTIVELY for debugging client-side issues, reproducing bugs, and automated browser testing.
