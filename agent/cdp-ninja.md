@@ -29,8 +29,8 @@ Control Chrome browsers via CDP Ninja bridge at http://localhost:8888
 - `POST /cdp/drag` - `{"startX": 100, "startY": 100, "endX": 300, "endY": 300}`
 
 ### Screenshots
-- `GET /cdp/screenshot` - Viewport screenshot
-- `GET /cdp/screenshot?full_page=true` - Full page screenshot
+- `GET /cdp/screenshot -o screenshot.png` - Viewport screenshot (returns binary PNG)
+- `GET /cdp/screenshot?full_page=true -o full.png` - Full page screenshot
 
 ### JavaScript
 - `POST /cdp/execute` - `{"code": "document.title"}`
