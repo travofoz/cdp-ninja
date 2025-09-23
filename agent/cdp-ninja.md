@@ -10,6 +10,12 @@ Control Chrome browsers via CDP Ninja bridge at http://localhost:8888
 - Chrome: `chrome --remote-debugging-port=9222 --remote-allow-origins=*`
 - CDP Ninja: `cdp-ninja` (install: `pip install cdp-ninja`)
 
+## Important for SSH Tunnels
+When using SSH tunnel, `localhost` in URLs refers to the remote server, not the local machine.
+Use the actual IP/hostname instead:
+- WRONG: `http://localhost:3000`
+- RIGHT: `http://159.203.92.45:3000` or actual server hostname
+
 ## API Endpoints
 
 ### Connection
