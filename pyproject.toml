@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdp-ninja"
-version = "1.0.2"
+version = "1.0.4"
 description = "🥷 Lightweight Chrome DevTools Protocol bridge for browser debugging and security testing"
 readme = "README.md"
 license = {text = "MIT"}

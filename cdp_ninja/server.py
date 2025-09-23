@@ -33,13 +33,14 @@ logger = logging.getLogger(__name__)
 class CDPBridgeServer:
     """Main API server for CDP Bridge"""
 
-    def __init__(self, cdp_port: int = 9222, bridge_port: int = 8888, debug: bool = False):
+    def __init__(self, cdp_port: int = 9222, bridge_port: int = 8888, debug: bool = False, timeout: int = 900):
         self.app = Flask(__name__)
         CORS(self.app)  # Enable CORS for remote access
 
-        self.cdp = CDPClient(port=cdp_port)
+        self.cdp = CDPClient(port=cdp_port, timeout=timeout)
         self.bridge_port = bridge_port
         self.debug = debug
+        self.timeout = timeout
 
         # Server state
         self.start_time = datetime.now()
@@ -991,6 +992,8 @@ def main():
                        help='HTTP API bridge port')
     parser.add_argument('--debug', action='store_true',
                        help='Enable Flask debug mode')
+    parser.add_argument('--timeout', type=int, default=900,
+                       help='Chrome command timeout in seconds (default: 900)')
 
     args = parser.parse_args()
 
@@ -1005,7 +1008,8 @@ def main():
     server = CDPBridgeServer(
         cdp_port=args.cdp_port,
         bridge_port=args.bridge_port,
-        debug=args.debug
+        debug=args.debug,
+        timeout=args.timeout
     )
 
     server.run()

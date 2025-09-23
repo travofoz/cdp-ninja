@@ -34,7 +34,7 @@ class CDPNinjaConfig:
 
     # Performance settings
     max_events: int = int(os.getenv('MAX_EVENTS', 10000))  # Big buffer for stress testing
-    chrome_timeout: int = int(os.getenv('CHROME_TIMEOUT', 30))  # Generous timeout
+    chrome_timeout: int = int(os.getenv('CHROME_TIMEOUT', 900))  # 15 minutes for pingtrees
 
     # Network settings
     bind_host: str = os.getenv('BIND_HOST', '127.0.0.1')  # localhost by default
@@ -98,7 +98,7 @@ Security Toggles:
 
 Performance:
   MAX_EVENTS=10000          Event buffer size (big for stress testing)
-  CHROME_TIMEOUT=30         Chrome command timeout in seconds
+  CHROME_TIMEOUT=900        Chrome command timeout in seconds (15 min default)
 
 Network:
   BIND_HOST=127.0.0.1       Interface to bind to (0.0.0.0 for network)

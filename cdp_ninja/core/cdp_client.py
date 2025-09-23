@@ -203,10 +203,12 @@ class CDPClient:
                  port: int = 9222,
                  host: str = 'localhost',
                  max_events: int = 1000,
-                 auto_reconnect: bool = True):
+                 auto_reconnect: bool = True,
+                 timeout: int = 900):
 
         self.connection = CDPConnection(port, host)
         self.auto_reconnect = auto_reconnect
+        self.default_timeout = timeout
 
         # Event management
         self.max_events = max_events
@@ -326,10 +328,14 @@ class CDPClient:
                 logger.error(f"Event handler error for {event.method}: {e}")
 
     def send_command(self, method: str, params: Optional[dict] = None,
-                    timeout: float = 10) -> dict:
+                    timeout: Optional[float] = None) -> dict:
         """Send CDP command and wait for response"""
         if not self.connection.connected.is_set():
             return {"error": "Not connected to Chrome DevTools"}
+
+        # Use default timeout if none provided
+        if timeout is None:
+            timeout = self.default_timeout
 
         with self.command_lock:
             cmd_id = self.command_id

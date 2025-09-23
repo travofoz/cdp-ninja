@@ -86,6 +86,13 @@ cdp-ninja --bridge-port 9999 --cdp-port 9222
 
 # Enable debug mode
 cdp-ninja --debug
+
+# Set timeout (for heavy analytics, pingtrees, etc.)
+cdp-ninja --timeout 1200
+
+# Environment variables
+export CHROME_TIMEOUT=600
+cdp-ninja
 ```
 
 ### SSH Tunnel Setup
@@ -253,6 +260,45 @@ Task(
     prompt="Click login button 5 times rapidly and capture any console errors or network failures"
 )
 ```
+
+## Timeout Configuration
+
+CDP Ninja uses configurable timeouts to handle different use cases:
+
+### Default Timeout
+- **900 seconds (15 minutes)** - Suitable for heavy analytics, pingtrees, and business reporting
+
+### Configuration Options
+
+**CLI Flag:**
+```bash
+# Quick testing (30 seconds)
+cdp-ninja --timeout 30
+
+# Heavy analytics (20 minutes)
+cdp-ninja --timeout 1200
+
+# Pingtree debugging (30 minutes)
+cdp-ninja --timeout 1800
+```
+
+**Environment Variable:**
+```bash
+# Set via environment
+export CHROME_TIMEOUT=600
+cdp-ninja
+
+# Or inline
+CHROME_TIMEOUT=300 cdp-ninja
+```
+
+### Use Cases
+- **CI/CD Testing:** 30-60 seconds for fast feedback
+- **Development:** 900 seconds (default) for complex applications
+- **Analytics/Reporting:** 1200+ seconds for heavy database queries
+- **Pingtree Debugging:** 1800+ seconds for multi-channel operations
+
+**Note:** HTTP clients (curl, WebFetch) can set their own timeouts independently. CDP Ninja's timeout only prevents internal hangs.
 
 ## API Reference
 
