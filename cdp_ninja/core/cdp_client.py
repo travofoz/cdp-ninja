@@ -386,8 +386,8 @@ class CDPClient:
             CDPDomain.RUNTIME,
             CDPDomain.PAGE,
             CDPDomain.DOM,
-            CDPDomain.CONSOLE,
-            CDPDomain.INPUT
+            CDPDomain.CONSOLE
+            # Input domain doesn't have enable method - works directly
         ]
 
         success_count = 0
