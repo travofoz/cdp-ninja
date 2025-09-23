@@ -39,13 +39,14 @@ installed    protocol
 
 ## Features
 
-- 🖱️ **Full Browser Control**: Click, type, scroll, hover, drag
+- 🖱️ **Full Browser Control**: Click, type, scroll, hover, drag and drop
 - 🌐 **Network Monitoring**: Capture all requests, responses, and timing
 - 📊 **Performance Profiling**: Memory, CPU, rendering metrics
 - 🐛 **Console Access**: Capture logs, errors, warnings
 - 📸 **Screenshots**: Full page or viewport captures
 - 🔍 **DOM Inspection**: Query, modify, and analyze page structure
 - ⚡ **JavaScript Execution**: Run code in page context
+- 📝 **Form Handling**: Fill, submit, and extract form data
 - 🎯 **Bug Reproduction**: Automated workflows for reproducing issues
 
 ## Quick Start
@@ -112,6 +113,32 @@ response = requests.post("http://localhost:8888/cdp/click",
 # Click by coordinates
 response = requests.post("http://localhost:8888/cdp/click",
                         json={"x": 100, "y": 200})
+```
+
+### Drag and Drop
+```python
+# Drag by coordinates
+response = requests.post("http://localhost:8888/cdp/drag",
+                        json={"startX": 100, "startY": 100, "endX": 300, "endY": 300})
+
+# Drag by selectors
+response = requests.post("http://localhost:8888/cdp/drag",
+                        json={"startSelector": "#drag-handle", "endSelector": "#drop-zone"})
+```
+
+### DOM Manipulation
+```python
+# Set element attribute
+response = requests.post("http://localhost:8888/cdp/dom/set_attribute",
+                        json={"selector": "#element", "name": "data-test", "value": "modified"})
+
+# Set element HTML content
+response = requests.post("http://localhost:8888/cdp/dom/set_html",
+                        json={"selector": "#content", "html": "<h1>New Content</h1>"})
+
+# Query DOM elements
+response = requests.post("http://localhost:8888/cdp/dom/query",
+                        json={"selector": ".item"})
 ```
 
 ### Capture Screenshot
@@ -239,6 +266,7 @@ Task(
 - `POST /cdp/type` - Type text into element
 - `POST /cdp/scroll` - Scroll page
 - `POST /cdp/hover` - Hover over element
+- `POST /cdp/drag` - Drag from start to end (coordinates or selectors)
 - `GET /cdp/screenshot` - Capture screenshot
 
 ### Debugging Operations
@@ -246,6 +274,9 @@ Task(
 - `GET /cdp/network/requests` - Get network activity
 - `POST /cdp/execute` - Execute JavaScript
 - `GET /cdp/dom/snapshot` - Get DOM tree
+- `POST /cdp/dom/query` - Query DOM elements
+- `POST /cdp/dom/set_attribute` - Set element attributes
+- `POST /cdp/dom/set_html` - Set element innerHTML
 
 ### Form Operations
 - `POST /cdp/form/fill` - Fill form fields

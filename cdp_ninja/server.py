@@ -10,6 +10,7 @@ import os
 import subprocess
 import time
 import platform
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -65,6 +66,7 @@ class CDPBridgeServer:
         self.app.route('/cdp/type', methods=['POST'])(self.type_text)
         self.app.route('/cdp/scroll', methods=['POST'])(self.scroll_page)
         self.app.route('/cdp/hover', methods=['POST'])(self.hover_element)
+        self.app.route('/cdp/drag', methods=['POST'])(self.drag_element)
         self.app.route('/cdp/screenshot')(self.capture_screenshot)
         self.app.route('/cdp/execute', methods=['POST'])(self.execute_javascript)
 
@@ -81,10 +83,13 @@ class CDPBridgeServer:
         # DOM Operations
         self.app.route('/cdp/dom/snapshot')(self.get_dom_snapshot)
         self.app.route('/cdp/dom/query', methods=['POST'])(self.query_selector)
+        self.app.route('/cdp/dom/set_attribute', methods=['POST'])(self.set_element_attribute)
+        self.app.route('/cdp/dom/set_html', methods=['POST'])(self.set_element_html)
 
         # Form Operations
         self.app.route('/cdp/form/fill', methods=['POST'])(self.fill_form)
         self.app.route('/cdp/form/submit', methods=['POST'])(self.submit_form)
+        self.app.route('/cdp/form/values')(self.get_form_values)
 
         # Page Operations
         self.app.route('/cdp/page/navigate', methods=['POST'])(self.navigate)
@@ -198,10 +203,11 @@ curl -X POST {request.host_url}cdp/click \\
             selector = data['selector']
             code = f"""
                 (() => {{
-                    const el = document.querySelector('{selector}');
+                    const selector = {json.dumps(selector)};
+                    const el = document.querySelector(selector);
                     if (el) {{
                         el.click();
-                        return {{success: true, selector: '{selector}'}};
+                        return {{success: true, selector: selector}};
                     }}
                     return {{success: false, error: 'Element not found'}};
                 }})()
@@ -259,7 +265,13 @@ curl -X POST {request.host_url}cdp/click \\
 
         if selector:
             # Focus element first
-            focus_code = f"document.querySelector('{selector}').focus()"
+            focus_code = f"""
+                (() => {{
+                    const selector = {json.dumps(selector)};
+                    const el = document.querySelector(selector);
+                    if (el) el.focus();
+                }})()
+            """
             self.cdp.send_command('Runtime.evaluate', {'expression': focus_code})
 
         # Type each character
@@ -305,7 +317,8 @@ curl -X POST {request.host_url}cdp/click \\
         # Get element coordinates
         code = f"""
             (() => {{
-                const el = document.querySelector('{selector}');
+                const selector = {json.dumps(selector)};
+                const el = document.querySelector(selector);
                 if (el) {{
                     const rect = el.getBoundingClientRect();
                     return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
@@ -335,6 +348,117 @@ curl -X POST {request.host_url}cdp/click \\
                 return jsonify({"success": True, "hovered": selector, "at": [x, y]})
 
         return jsonify({"error": "Element not found"}), 404
+
+    def drag_element(self):
+        """Drag from start coordinates to end coordinates"""
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body required"}), 400
+
+        # Support both coordinate-based and selector-based dragging
+        if 'startX' in data and 'startY' in data and 'endX' in data and 'endY' in data:
+            # Direct coordinate drag
+            try:
+                start_x, start_y = float(data['startX']), float(data['startY'])
+                end_x, end_y = float(data['endX']), float(data['endY'])
+                # Check for NaN or infinite values
+                if not all(math.isfinite(coord) for coord in [start_x, start_y, end_x, end_y]):
+                    return jsonify({"error": "Coordinates must be finite numbers"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "Coordinates must be numeric"}), 400
+        elif 'startSelector' in data and 'endSelector' in data:
+            # Selector-based drag - get coordinates of elements
+            start_code = f"""
+                (() => {{
+                    const selector = {json.dumps(data['startSelector'])};
+                    const el = document.querySelector(selector);
+                    if (el) {{
+                        const rect = el.getBoundingClientRect();
+                        return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
+                    }}
+                    return null;
+                }})()
+            """
+            start_result = self.cdp.send_command('Runtime.evaluate', {
+                'expression': start_code,
+                'returnByValue': True
+            })
+
+            end_code = f"""
+                (() => {{
+                    const selector = {json.dumps(data['endSelector'])};
+                    const el = document.querySelector(selector);
+                    if (el) {{
+                        const rect = el.getBoundingClientRect();
+                        return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
+                    }}
+                    return null;
+                }})()
+            """
+            end_result = self.cdp.send_command('Runtime.evaluate', {
+                'expression': end_code,
+                'returnByValue': True
+            })
+
+            # Extract coordinates safely
+            try:
+                if 'result' not in start_result or 'result' not in start_result['result']:
+                    return jsonify({"error": "Failed to evaluate start selector"}), 500
+                if 'result' not in end_result or 'result' not in end_result['result']:
+                    return jsonify({"error": "Failed to evaluate end selector"}), 500
+
+                start_coords = start_result['result']['result']
+                end_coords = end_result['result']['result']
+                if not start_coords or not end_coords:
+                    return jsonify({"error": "One or both elements not found"}), 404
+                start_x, start_y = start_coords['x'], start_coords['y']
+                end_x, end_y = end_coords['x'], end_coords['y']
+            except (KeyError, TypeError):
+                return jsonify({"error": "Failed to get element coordinates"}), 500
+        else:
+            return jsonify({"error": "Either startX/startY/endX/endY or startSelector/endSelector required"}), 400
+
+        # Perform drag operation
+        # 1. Mouse down at start position
+        mouse_down = self.cdp.send_command('Input.dispatchMouseEvent', {
+            'type': 'mousePressed',
+            'x': start_x,
+            'y': start_y,
+            'button': 'left',
+            'clickCount': 1
+        })
+
+        if 'error' in mouse_down:
+            return jsonify(mouse_down), 500
+
+        # 2. Mouse move to end position (dragging)
+        mouse_move = self.cdp.send_command('Input.dispatchMouseEvent', {
+            'type': 'mouseMoved',
+            'x': end_x,
+            'y': end_y
+        })
+
+        if 'error' in mouse_move:
+            return jsonify(mouse_move), 500
+
+        # 3. Mouse up at end position
+        mouse_up = self.cdp.send_command('Input.dispatchMouseEvent', {
+            'type': 'mouseReleased',
+            'x': end_x,
+            'y': end_y,
+            'button': 'left'
+        })
+
+        if 'error' in mouse_up:
+            return jsonify(mouse_up), 500
+
+        return jsonify({
+            "success": True,
+            "dragged": {
+                "from": [start_x, start_y],
+                "to": [end_x, end_y]
+            }
+        })
 
     def capture_screenshot(self):
         """Capture screenshot of current page"""
@@ -453,12 +577,12 @@ curl -X POST {request.host_url}cdp/click \\
     def get_dom_snapshot(self):
         """Get current DOM tree"""
         result = self.cdp.send_command('DOM.getDocument', {'depth': -1})
-        if 'result' in result:
+        if 'result' in result and 'root' in result['result'] and 'nodeId' in result['result']['root']:
             root_id = result['result']['root']['nodeId']
             html_result = self.cdp.send_command('DOM.getOuterHTML', {'nodeId': root_id})
             return jsonify(html_result)
 
-        return jsonify(result)
+        return jsonify({"error": "Failed to get DOM document"}), 500
 
     def query_selector(self):
         """Query DOM selector"""
@@ -468,15 +592,18 @@ curl -X POST {request.host_url}cdp/click \\
 
         selector = data['selector']
         code = f"""
-            Array.from(document.querySelectorAll('{selector}')).map(el => ({{
-                tagName: el.tagName,
-                textContent: el.textContent.substring(0, 100),
-                innerHTML: el.innerHTML.substring(0, 200),
-                attributes: Array.from(el.attributes).reduce((acc, attr) => {{
-                    acc[attr.name] = attr.value;
-                    return acc;
-                }}, {{}})
-            }}))
+            (() => {{
+                const selector = {json.dumps(selector)};
+                return Array.from(document.querySelectorAll(selector)).map(el => ({{
+                    tagName: el.tagName,
+                    textContent: el.textContent.substring(0, 100),
+                    innerHTML: el.innerHTML.substring(0, 200),
+                    attributes: Array.from(el.attributes).reduce((acc, attr) => {{
+                        acc[attr.name] = attr.value;
+                        return acc;
+                    }}, {{}})
+                }}));
+            }})()
         """
 
         result = self.cdp.send_command('Runtime.evaluate', {
@@ -485,6 +612,117 @@ curl -X POST {request.host_url}cdp/click \\
         })
 
         return jsonify(result)
+
+    def set_element_attribute(self):
+        """Set attribute on DOM element"""
+        data = request.get_json()
+        if not data or 'selector' not in data or 'name' not in data or 'value' not in data:
+            return jsonify({"error": "Selector, name, and value required"}), 400
+
+        selector = data['selector']
+        attr_name = data['name']
+        attr_value = data['value']
+
+        code = f"""
+            (() => {{
+                const selector = {json.dumps(selector)};
+                const attrName = {json.dumps(attr_name)};
+                const attrValue = {json.dumps(attr_value)};
+                const el = document.querySelector(selector);
+                if (el) {{
+                    el.setAttribute(attrName, attrValue);
+                    return {{success: true, selector: selector, attribute: attrName, value: attrValue}};
+                }}
+                return {{success: false, error: 'Element not found'}};
+            }})()
+        """
+
+        result = self.cdp.send_command('Runtime.evaluate', {
+            'expression': code,
+            'returnByValue': True
+        })
+
+        if 'result' in result and 'result' in result['result']:
+            return jsonify(result['result']['result'])
+
+        return jsonify({"error": "Failed to set attribute"}), 500
+
+    def set_element_html(self):
+        """Set innerHTML of DOM element"""
+        data = request.get_json()
+        if not data or 'selector' not in data or 'html' not in data:
+            return jsonify({"error": "Selector and html required"}), 400
+
+        selector = data['selector']
+        html_content = data['html']
+
+        # Use JSON encoding to safely pass HTML content
+        code = f"""
+            (() => {{
+                const selector = {json.dumps(selector)};
+                const htmlContent = {json.dumps(html_content)};
+                const el = document.querySelector(selector);
+                if (el) {{
+                    el.innerHTML = htmlContent;
+                    return {{success: true, selector: selector, html_length: el.innerHTML.length}};
+                }}
+                return {{success: false, error: 'Element not found'}};
+            }})()
+        """
+
+        result = self.cdp.send_command('Runtime.evaluate', {
+            'expression': code,
+            'returnByValue': True
+        })
+
+        if 'result' in result and 'result' in result['result']:
+            return jsonify(result['result']['result'])
+
+        return jsonify({"error": "Failed to set HTML"}), 500
+
+    def get_form_values(self):
+        """Get all form field values"""
+        selector = request.args.get('selector', 'form')
+
+        code = f"""
+            (() => {{
+                const selector = {json.dumps(selector)};
+                const form = document.querySelector(selector);
+                if (!form) return {{error: 'Form not found'}};
+
+                const values = {{}};
+                const inputs = form.querySelectorAll('input, textarea, select');
+
+                inputs.forEach(input => {{
+                    const name = input.name || input.id;
+                    if (name) {{
+                        if (input.type === 'checkbox' || input.type === 'radio') {{
+                            values[name] = input.checked;
+                        }} else if (input.type === 'file') {{
+                            values[name] = input.files.length > 0 ? input.files[0].name : null;
+                        }} else {{
+                            values[name] = input.value;
+                        }}
+                    }}
+                }});
+
+                return {{
+                    selector: selector,
+                    values: values,
+                    fieldCount: inputs.length
+                }};
+            }})()
+        """
+
+        result = self.cdp.send_command('Runtime.evaluate', {
+            'expression': code,
+            'returnByValue': True
+        })
+
+        if 'result' in result and 'result' in result['result']:
+            return jsonify(result['result']['result'])
+
+        return jsonify({"error": "Failed to get form values"}), 500
 
     def fill_form(self):
         """Fill form fields"""
