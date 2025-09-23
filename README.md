@@ -52,86 +52,50 @@ installed    protocol
 
 ### Prerequisites
 
-1. **Chrome/Chromium** installed on your system
+1. **Chrome** installed
 2. **Python 3.8+** installed
-3. **pip** package manager
 
 ### Installation
 
-#### Option 1: Install from GitHub (Recommended)
 ```bash
-# Install directly from GitHub
+# Install CDP Ninja
 pip install git+https://github.com/travofoz/cdp-ninja.git
 
-# Start Chrome with debugging enabled (separate terminal)
-chrome --remote-debugging-port=9222 --remote-allow-origins=*
-# OR on Windows (use PowerShell):
+# Start Chrome with debugging enabled
+# Windows PowerShell:
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="C:\temp\chrome-debug"
 
-# Start CDP Ninja server
-cdp-ninja
+# Linux/macOS:
+google-chrome --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir=/tmp/chrome-debug
 
-# Or with custom settings
-cdp-ninja --bridge-port 9999 --cdp-port 9222 --debug
-```
-
-#### Option 2: From Source
-```bash
-# Clone repository
-git clone https://github.com/travofoz/cdp-ninja
-cd cdp-ninja
-
-# Install in development mode
-pip install -e .
-
-# Start bridge
+# Start CDP Ninja
 cdp-ninja
 ```
 
-#### Option 3: Platform-Specific Setup Scripts
-
-**Windows:**
-```powershell
-# Run PowerShell installer
-.\cdp_ninja\setup\setup_windows.ps1
+**Test it works:**
+```bash
+curl http://localhost:8888/cdp/status
 ```
 
-**Linux/macOS:**
+### Custom Settings
+
 ```bash
-# Run bash installer
-./cdp_ninja/setup/setup_unix.sh
+# Use different ports
+cdp-ninja --bridge-port 9999 --cdp-port 9222
+
+# Enable debug mode
+cdp-ninja --debug
 ```
 
 ### SSH Tunnel Setup
 
-CDP Ninja supports both tunnel directions depending on your setup:
+To expose your local CDP Ninja to a remote server:
 
-#### Option A: Access Remote CDP Ninja (Local Forward)
-When CDP Ninja runs on a remote machine and you want to access it locally:
 ```bash
-# From your local machine
-ssh -L 8888:localhost:8888 user@remote-machine
+# From your local machine (where CDP Ninja runs)
+ssh -R 8888:localhost:8888 user@your-server
 
-# Now access bridge locally
-curl http://localhost:8888/cdp/status
-```
-
-#### Option B: Expose Local CDP Ninja (Reverse Forward)
-When CDP Ninja runs locally and Claude Code/remote tools need access:
-```bash
-# From your local machine (where Chrome/CDP Ninja runs)
-ssh -R 8888:localhost:8888 user@claude-code-vps
-
-# Remote system can now access your local bridge
-curl http://localhost:8888/cdp/status
-```
-
-#### Test Connection
-```bash
-# Test CDP Ninja is running
-curl http://localhost:8888/health
-
-# Check CDP connection status
+# Now on the remote server:
 curl http://localhost:8888/cdp/status
 ```
 
