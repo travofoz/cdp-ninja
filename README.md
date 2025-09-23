@@ -445,6 +445,6 @@ Special thanks to Claude (Anthropic) for architectural insights and implementati
 
 ## Support
 
-- 📚 [Documentation](https://github.com/yourusername/cdp-thin-bridge/wiki)
-- 🐛 [Issues](https://github.com/yourusername/cdp-thin-bridge/issues)
-- 💬 [Discussions](https://github.com/yourusername/cdp-thin-bridge/discussions)
+- 📚 [API Documentation](USAGE.md) - Complete usage guide with examples
+- 🐛 [Issues](https://github.com/travofoz/cdp-ninja/issues)
+- 💬 [Discussions](https://github.com/travofoz/cdp-ninja/discussions)
