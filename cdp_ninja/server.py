@@ -52,6 +52,13 @@ class CDPBridgeServer:
     def _setup_routes(self):
         """Register all API routes"""
 
+        # Register blueprints
+        self.app.register_blueprint(debugging_routes)
+        self.app.register_blueprint(browser_routes)
+        self.app.register_blueprint(navigation_routes)
+        self.app.register_blueprint(dom_routes)
+        self.app.register_blueprint(system_routes)
+
         # Health & Status
         self.app.route('/')(self.index)
         self.app.route('/health')(self.health_check)
@@ -79,7 +86,6 @@ class CDPBridgeServer:
 
         # Console & Debugging
         self.app.route('/cdp/console/logs')(self.get_console_logs)
-        self.app.route('/cdp/console/clear')(self.clear_console)
 
         # DOM Operations
         self.app.route('/cdp/dom/snapshot')(self.get_dom_snapshot)
@@ -498,13 +504,25 @@ curl -X POST {request.host_url}cdp/click \\
         return jsonify(result)
 
     def get_network_requests(self):
-        """Get recent network requests with details"""
+        """Get recent network requests and WebSocket frames"""
         events = self.cdp.get_recent_events('Network', 200)
 
-        # Group by request ID
+        # Group by request ID for HTTP requests
         requests = {}
+        websocket_frames = []
+
         for event in events:
-            if 'requestId' in event.params:
+            # Handle WebSocket frames separately
+            if event.method in ['Network.webSocketFrameReceived', 'Network.webSocketFrameSent']:
+                websocket_frames.append({
+                    'type': 'websocket_frame',
+                    'direction': 'received' if 'Received' in event.method else 'sent',
+                    'timestamp': event.timestamp,
+                    'requestId': event.params.get('requestId', ''),
+                    'frame': event.params.get('response', {}),
+                    'payload': event.params.get('response', {}).get('payloadData', '')
+                })
+            elif 'requestId' in event.params:
                 req_id = event.params['requestId']
                 if req_id not in requests:
                     requests[req_id] = {}
@@ -512,12 +530,13 @@ curl -X POST {request.host_url}cdp/click \\
                 event_type = event.method.replace('Network.', '')
                 requests[req_id][event_type] = event.params
 
-        # Format for response
+        # Format HTTP requests
         formatted = []
         for req_id, data in requests.items():
             if 'requestWillBeSent' in data:
                 req = data['requestWillBeSent']
                 formatted.append({
+                    'type': 'http_request',
                     'id': req_id,
                     'url': req['request']['url'],
                     'method': req['request']['method'],
@@ -526,7 +545,16 @@ curl -X POST {request.host_url}cdp/click \\
                     'failed': 'loadingFailed' in data
                 })
 
-        return jsonify(formatted)
+        # Combine and sort by timestamp
+        all_requests = formatted + websocket_frames
+        all_requests.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        return jsonify({
+            'requests': all_requests,
+            'http_count': len(formatted),
+            'websocket_count': len(websocket_frames),
+            'total': len(all_requests)
+        })
 
     def block_urls(self):
         """Block URLs matching patterns"""
@@ -567,13 +595,6 @@ curl -X POST {request.host_url}cdp/click \\
                 logs.append(event.params)
 
         return jsonify(logs)
-
-    def clear_console(self):
-        """Clear console output"""
-        result = self.cdp.send_command('Runtime.evaluate', {
-            'expression': 'console.clear()'
-        })
-        return jsonify(result)
 
     def get_dom_snapshot(self):
         """Get current DOM tree"""
