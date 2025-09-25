@@ -58,6 +58,7 @@ chrome-debug-profile*/
 # Config files that might contain secrets
 config.local.json
 .env.local
+.env
 
 # Test coverage
 htmlcov/
@@ -71,4 +72,4 @@ htmlcov/
 # Temporary files
 temp/
 tmp/
-*.tmp
+*.tmp.env

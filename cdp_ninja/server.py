@@ -986,6 +986,9 @@ curl -X POST {request.host_url}cdp/click \\
             logger.error("Failed to connect to Chrome DevTools")
             return False
 
+        # Initialize global pool for blueprints
+        initialize_global_pool(max_connections=5, port=self.cdp.connection.port)
+
         try:
             # Run Flask server
             self.app.run(
