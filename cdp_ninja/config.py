@@ -17,7 +17,7 @@ class CDPNinjaConfig:
     @class DebugNinjaConfig
     @property {int} cdp_port - Chrome DevTools Protocol port
     @property {int} bridge_port - HTTP API bridge port
-    @property {bool} enable_powershell - Allow PowerShell execution (DANGEROUS!)
+    @property {bool} enable_shell_execution - Allow shell command execution (DANGEROUS!)
     @property {int} max_events - Maximum events to queue (big buffer for fuzzing)
     @property {str} bind_host - Host to bind to (127.0.0.1 for local, 0.0.0.0 for network)
     @property {int} chrome_timeout - Timeout for Chrome commands (generous for debugging)
@@ -30,7 +30,7 @@ class CDPNinjaConfig:
     bridge_port: int = int(os.getenv('BRIDGE_PORT', 8888))
 
     # Security toggles (user choice)
-    enable_powershell: bool = os.getenv('ENABLE_POWERSHELL', 'false').lower() == 'true'
+    enable_shell_execution: bool = os.getenv('ENABLE_SHELL_EXECUTION', 'false').lower() == 'true'
 
     # Performance settings
     max_events: int = int(os.getenv('MAX_EVENTS', 10000))  # Big buffer for stress testing
@@ -48,10 +48,10 @@ class CDPNinjaConfig:
         Print warnings for dangerous settings
         But don't prevent anything - user chose this
         """
-        if self.enable_powershell:
-            print("🚨 WARNING: PowerShell execution ENABLED")
+        if self.enable_shell_execution:
+            print("🚨 WARNING: Shell execution ENABLED")
             print("   This allows ARBITRARY COMMAND EXECUTION on your system!")
-            print("   Set ENABLE_POWERSHELL=false to disable")
+            print("   Set ENABLE_SHELL_EXECUTION=false to disable")
             print()
 
         if self.bind_host != '127.0.0.1':
@@ -64,7 +64,7 @@ class CDPNinjaConfig:
         print(f"   CDP Port: {self.cdp_port}")
         print(f"   Bridge Port: {self.bridge_port}")
         print(f"   Bind Host: {self.bind_host}")
-        print(f"   PowerShell: {'ENABLED' if self.enable_powershell else 'DISABLED'}")
+        print(f"   Shell Execution: {'ENABLED' if self.enable_shell_execution else 'DISABLED'}")
         print(f"   Max Events: {self.max_events}")
         print()
 
@@ -94,7 +94,7 @@ Core Settings:
   BRIDGE_PORT=8888           HTTP API bridge port
 
 Security Toggles:
-  ENABLE_POWERSHELL=false    Allow PowerShell execution (DANGEROUS!)
+  ENABLE_SHELL_EXECUTION=false    Allow shell command execution (DANGEROUS!)
 
 Performance:
   MAX_EVENTS=10000          Event buffer size (big for stress testing)
@@ -108,8 +108,8 @@ Debug:
   DEBUG_MODE=false          Enable Flask debug mode
 
 Examples:
-  # Enable PowerShell (if you're brave)
-  export ENABLE_POWERSHELL=true
+  # Enable shell execution (if you're brave)
+  export ENABLE_SHELL_EXECUTION=true
 
   # Allow network access (if you're really brave)
   export BIND_HOST=0.0.0.0

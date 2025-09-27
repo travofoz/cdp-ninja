@@ -29,6 +29,9 @@ from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Global flag for shell execution
+SHELL_ENABLED = False
+
 
 class CDPBridgeServer:
     """Main API server for CDP Bridge"""
@@ -1014,11 +1017,446 @@ curl -X POST {request.host_url}cdp/click \\
         return True
 
 
+# Phase 4 Deployment Action Handlers
+def handle_usage():
+    """Output complete API documentation from USAGE.md"""
+    try:
+        usage_path = Path(__file__).parent.parent / "USAGE.md"
+        if not usage_path.exists():
+            print("❌ USAGE.md not found at expected location")
+            return
+
+        print("🥷 CDP Ninja API Documentation")
+        print("=" * 50)
+        print()
+
+        with open(usage_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Parse and format the markdown content for CLI display
+        lines = content.split('\n')
+        in_code_block = False
+
+        for line in lines:
+            # Handle code blocks
+            if line.startswith('```'):
+                in_code_block = not in_code_block
+                print("─" * 40)
+                continue
+
+            # Format headers
+            if line.startswith('# '):
+                print(f"\n🔥 {line[2:]}")
+                print("=" * len(line))
+            elif line.startswith('## '):
+                print(f"\n💠 {line[3:]}")
+                print("─" * len(line))
+            elif line.startswith('### '):
+                print(f"\n⚡ {line[4:]}")
+            # Format code blocks with indentation
+            elif in_code_block:
+                print(f"   {line}")
+            # Format list items
+            elif line.startswith('- '):
+                print(f"  • {line[2:]}")
+            # Regular lines
+            elif line.strip():
+                print(line)
+            else:
+                print()
+
+    except Exception as e:
+        print(f"❌ Error reading API documentation: {e}")
+        return 1
+
+    return 0
+
+
+def handle_install_agents(target_path):
+    """Install agents locally or remotely with conflict resolution"""
+    print(f"🥷 Installing CDP Ninja agents to: {target_path}")
+
+    try:
+        agents_dir = Path(__file__).parent.parent / "agents"
+        if not agents_dir.exists():
+            print(f"❌ Agents directory not found: {agents_dir}")
+            print("💡 Expected location: /agents (relative to cdp_ninja package)")
+            return False
+
+        agent_files = list(agents_dir.glob("*.md"))
+        if not agent_files:
+            print(f"❌ No agent files found in: {agents_dir}")
+            return False
+
+        print(f"📁 Found {len(agent_files)} agent files")
+
+        # Parse target (local vs remote)
+        if ':' in target_path:
+            # Remote installation via SCP
+            print("🌐 Remote installation detected")
+            host, remote_path = target_path.split(':', 1)
+            success = install_agents_remote(host, remote_path, agents_dir)
+        else:
+            # Local installation
+            print("💻 Local installation detected")
+            success = install_agents_local(target_path, agents_dir)
+
+        if success:
+            print("\n🎉 Agent installation completed successfully!")
+            print("💡 Next steps:")
+            print("   1. Verify agents are accessible in your Claude Code environment")
+            print("   2. Test with: Task(subagent_type='cdp-ninja-hidden-door', ...)")
+        else:
+            print("\n❌ Agent installation failed or no files were installed")
+
+        return success
+
+    except Exception as e:
+        print(f"❌ Agent installation failed: {e}")
+        return False
+
+
+def handle_install_deps(target_host, web_backend):
+    """Install dependencies (Claude CLI, tmux, gotty/ttyd) on target system"""
+    print(f"🛠️  Installing dependencies on: {target_host}")
+    print(f"📺 Web backend: {web_backend}")
+
+    if target_host == 'localhost':
+        print("💻 Installing locally...")
+        install_deps_local(web_backend)
+    else:
+        print(f"🌐 Installing remotely on {target_host}...")
+        install_deps_remote(target_host, web_backend)
+
+
+def handle_tunnel(target_host):
+    """Setup SSH tunnels for remote access"""
+    print(f"🚇 Setting up SSH tunnel to: {target_host}")
+
+    # Auto-detect required ports from bridge configuration
+    cdp_port = 9222
+    bridge_port = 8888
+    web_port = 8080
+
+    setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port)
+
+
+def handle_invoke_claude(target_host, web_backend):
+    """Start Claude interface in tmux with web terminal"""
+    print(f"🤖 Starting Claude interface on: {target_host}")
+    print(f"📺 Web backend: {web_backend}")
+
+    start_remote_claude(target_host, web_backend)
+
+
+def handle_shell():
+    """Enable shell execution capabilities on the bridge"""
+    print("🐚 Enabling shell execution endpoint...")
+    print("⚠️  Warning: Remote shell execution will be enabled")
+    print("📡 Shell endpoint: POST /system/execute")
+
+    # Set global flag to enable shell routes
+    global SHELL_ENABLED
+    SHELL_ENABLED = True
+
+    print("✅ Shell execution enabled - starting server")
+    return 'start_server_with_shell'  # Signal to start server with shell enabled
+
+
+# Helper functions for agent installation
+def install_agents_local(target_path, agents_dir):
+    """Install agents to local path with conflict resolution"""
+    import shutil
+
+    target = Path(target_path).expanduser().resolve()
+
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+    except PermissionError:
+        print(f"❌ Permission denied creating directory: {target}")
+        return False
+
+    installed_count = 0
+    skipped_count = 0
+
+    for agent_file in agents_dir.glob("*.md"):
+        target_file = target / agent_file.name
+
+        if target_file.exists() and not getattr(install_agents_local, 'overwrite_all', False):
+            choice = prompt_file_conflict(agent_file, target_file)
+            if choice == 'skip':
+                print(f"⏭️  Skipped: {agent_file.name}")
+                skipped_count += 1
+                continue
+            elif choice == 'all':
+                # Set flag to overwrite all remaining files
+                install_agents_local.overwrite_all = True
+
+        try:
+            shutil.copy2(agent_file, target_file)
+            print(f"✅ Installed: {agent_file.name}")
+            installed_count += 1
+        except Exception as e:
+            print(f"❌ Failed to install {agent_file.name}: {e}")
+
+    print(f"\n📊 Installation complete: {installed_count} installed, {skipped_count} skipped")
+    return installed_count > 0
+
+
+def install_agents_remote(host, remote_path, agents_dir):
+    """Install agents to remote path via SCP (SSH key authentication required)"""
+    import subprocess
+
+    print(f"🔑 Using SSH key authentication (passwords not supported)")
+    print(f"📁 Target directory: {host}:{remote_path}")
+
+    # Test SSH connection first
+    try:
+        result = subprocess.run(
+            ['ssh', '-o', 'PasswordAuthentication=no', '-o', 'ConnectTimeout=10',
+             host, 'echo "SSH connection test"'],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode != 0:
+            print("❌ SSH key authentication failed")
+            print("🔧 Setup required:")
+            print(f"   1. Generate SSH key: ssh-keygen -t ed25519")
+            print(f"   2. Copy to remote: ssh-copy-id {host}")
+            print(f"   3. Test connection: ssh {host}")
+            return False
+    except subprocess.TimeoutExpired:
+        print(f"❌ SSH connection timeout to {host}")
+        return False
+    except FileNotFoundError:
+        print("❌ SSH client not found")
+        return False
+
+    print("✅ SSH connection verified")
+
+    # Create remote directory
+    try:
+        result = subprocess.run(
+            ['ssh', host, f'mkdir -p {remote_path}'],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode != 0:
+            print(f"❌ Failed to create remote directory: {result.stderr}")
+            return False
+    except subprocess.TimeoutExpired:
+        print("❌ Timeout creating remote directory")
+        return False
+
+    # Copy agents with SCP
+    installed_count = 0
+    failed_count = 0
+
+    for agent_file in agents_dir.glob("*.md"):
+        remote_file = f"{host}:{remote_path}/{agent_file.name}"
+        try:
+            result = subprocess.run(
+                ['scp', '-o', 'PasswordAuthentication=no',
+                 str(agent_file), remote_file],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0:
+                print(f"✅ Installed: {agent_file.name}")
+                installed_count += 1
+            else:
+                print(f"❌ Failed to copy {agent_file.name}: {result.stderr}")
+                failed_count += 1
+        except subprocess.TimeoutExpired:
+            print(f"❌ Timeout copying {agent_file.name}")
+            failed_count += 1
+
+    print(f"\n📊 Remote installation complete: {installed_count} installed, {failed_count} failed")
+    return installed_count > 0
+
+
+def prompt_file_conflict(source_file, target_file):
+    """Prompt user for file conflict resolution"""
+    from datetime import datetime
+
+    source_time = datetime.fromtimestamp(source_file.stat().st_mtime)
+    target_time = datetime.fromtimestamp(target_file.stat().st_mtime)
+    source_size = source_file.stat().st_size
+    target_size = target_file.stat().st_size
+
+    print(f"\n⚠️  File conflict: {target_file.name}")
+    print("─" * 50)
+    print(f"📄 Source: {source_time.strftime('%Y-%m-%d %H:%M:%S')} ({source_size:,} bytes)")
+    print(f"📄 Target: {target_time.strftime('%Y-%m-%d %H:%M:%S')} ({target_size:,} bytes)")
+
+    if source_time > target_time:
+        print("📅 Source is newer")
+    elif target_time > source_time:
+        print("📅 Target is newer")
+    else:
+        print("📅 Same modification time")
+
+    if source_size != target_size:
+        print(f"📏 Size difference: {source_size - target_size:+,} bytes")
+
+    while True:
+        choice = input("\n[O]verwrite, [S]kip, [D]iff, [A]ll overwrite? ").lower().strip()
+
+        if choice in ['o', 'overwrite']:
+            return 'overwrite'
+        elif choice in ['s', 'skip']:
+            return 'skip'
+        elif choice in ['a', 'all']:
+            return 'all'
+        elif choice in ['d', 'diff']:
+            show_file_diff(source_file, target_file)
+            continue
+        else:
+            print("❌ Invalid choice. Use O/S/D/A")
+
+
+def show_file_diff(source_file, target_file):
+    """Show basic diff between files"""
+    try:
+        with open(source_file, 'r', encoding='utf-8') as f:
+            source_lines = f.readlines()
+        with open(target_file, 'r', encoding='utf-8') as f:
+            target_lines = f.readlines()
+
+        print("\n📊 Quick diff (first 10 differences):")
+        print("─" * 30)
+
+        diff_count = 0
+        max_lines = min(len(source_lines), len(target_lines), 50)
+
+        for i in range(max_lines):
+            if i < len(source_lines) and i < len(target_lines):
+                if source_lines[i] != target_lines[i]:
+                    print(f"Line {i+1}:")
+                    print(f"- {target_lines[i].rstrip()}")
+                    print(f"+ {source_lines[i].rstrip()}")
+                    diff_count += 1
+                    if diff_count >= 5:
+                        print("... (showing first 5 differences)")
+                        break
+
+        if len(source_lines) != len(target_lines):
+            print(f"📏 Line count: source={len(source_lines)}, target={len(target_lines)}")
+
+    except Exception as e:
+        print(f"❌ Could not show diff: {e}")
+
+
+def install_deps_local(web_backend):
+    """Install dependencies locally"""
+    import subprocess
+
+    try:
+        # Install Claude CLI
+        print("📦 Installing Claude CLI...")
+        subprocess.run(['pip', 'install', 'claude-cli'], check=True)
+
+        # Install tmux (platform-specific)
+        if platform.system() == 'Darwin':
+            subprocess.run(['brew', 'install', 'tmux'], check=True)
+        elif platform.system() == 'Linux':
+            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'tmux'], check=True)
+
+        # Install web backend
+        install_web_backend_local(web_backend)
+
+        print("✅ Local dependencies installed successfully")
+
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Installation failed: {e}")
+
+
+def install_deps_remote(target_host, web_backend):
+    """Install dependencies on remote host"""
+    import subprocess
+
+    commands = [
+        'pip install claude-cli',
+        'sudo apt-get update && sudo apt-get install -y tmux',
+    ]
+
+    if web_backend == 'gotty':
+        commands.append('wget -O /tmp/gotty.tar.gz https://github.com/yudai/gotty/releases/latest/download/gotty_linux_amd64.tar.gz && tar -xzf /tmp/gotty.tar.gz -C /usr/local/bin/')
+    else:  # ttyd
+        commands.append('sudo apt-get install -y ttyd')
+
+    for cmd in commands:
+        try:
+            subprocess.run(['ssh', target_host, cmd], check=True)
+            print(f"✅ Executed: {cmd}")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed: {cmd} - {e}")
+
+
+def install_web_backend_local(web_backend):
+    """Install web backend locally"""
+    import subprocess
+
+    if web_backend == 'gotty':
+        print("📺 Installing gotty...")
+        # Platform-specific gotty installation
+        if platform.system() == 'Darwin':
+            subprocess.run(['brew', 'install', 'gotty'], check=True)
+        else:
+            print("⚠️  Manual gotty installation required on this platform")
+    else:  # ttyd
+        print("📺 Installing ttyd...")
+        if platform.system() == 'Darwin':
+            subprocess.run(['brew', 'install', 'ttyd'], check=True)
+        elif platform.system() == 'Linux':
+            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'ttyd'], check=True)
+
+
+def setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port):
+    """Setup SSH tunnels for remote access"""
+    import subprocess
+
+    tunnels = [
+        f'{cdp_port}:localhost:{cdp_port}',
+        f'{bridge_port}:localhost:{bridge_port}',
+        f'{web_port}:localhost:{web_port}'
+    ]
+
+    cmd = ['ssh', '-L'] + ['-L'.join(tunnels)] + [target_host, '-N']
+
+    print(f"🚇 Tunnel command: {' '.join(cmd)}")
+    print("⚠️  Run this command in a separate terminal:")
+    print(f"ssh -L {':'.join(tunnels)} {target_host} -N")
+
+
+def start_remote_claude(target_host, web_backend):
+    """Start Claude interface on remote host with web terminal"""
+    import subprocess
+
+    if web_backend == 'ttyd':
+        remote_cmd = '''
+        tmux new-session -d -s claude 'claude' 2>/dev/null || true;
+        ttyd -p 8080 -t titleFixed='Claude CLI' -t disableLeaveAlert=true -W tmux attach -t claude
+        '''
+    else:  # gotty
+        remote_cmd = '''
+        tmux new-session -d -s claude 'claude' 2>/dev/null || true;
+        gotty -p 8080 --permit-write --reconnect --reconnect-time 10 --max-connection 5 --title-format 'Claude CLI - {{.hostname}}' tmux attach -t claude
+        '''
+
+    try:
+        subprocess.run(['ssh', target_host, remote_cmd], check=True)
+        print(f"✅ Claude interface started on {target_host}:8080")
+        print(f"🌐 Access via: http://{target_host}:8080")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Failed to start Claude interface: {e}")
+
+
 def main():
     """Main entry point"""
     import argparse
+    import sys
 
-    parser = argparse.ArgumentParser(description='CDP Thin Bridge Server')
+    parser = argparse.ArgumentParser(description='CDP Ninja - Browser debugging bridge and deployment toolkit')
+
+    # Server configuration arguments
     parser.add_argument('--cdp-port', type=int, default=9222,
                        help='Chrome DevTools Protocol port')
     parser.add_argument('--bridge-port', type=int, default=8888,
@@ -1028,13 +1466,67 @@ def main():
     parser.add_argument('--timeout', type=int, default=900,
                        help='Chrome command timeout in seconds (default: 900)')
 
+    # Phase 4 deployment action arguments
+    parser.add_argument('--usage', action='store_true',
+                       help='Output complete API documentation')
+    parser.add_argument('--install-agents', type=str, metavar='[user@host:]/path',
+                       help='Install agents locally or remotely with conflict resolution')
+    parser.add_argument('--install-deps', type=str, metavar='[user@host]', nargs='?', const='localhost',
+                       help='Install dependencies (Claude CLI, tmux, gotty/ttyd)')
+    parser.add_argument('--web-backend', choices=['gotty', 'ttyd'], default='ttyd',
+                       help='Web terminal backend for --install-deps and --invoke-claude (default: ttyd)')
+    parser.add_argument('--tunnel', type=str, metavar='user@host',
+                       help='Setup SSH tunnels for remote access')
+    parser.add_argument('--invoke-claude', type=str, metavar='user@host',
+                       help='Start Claude interface in tmux with web terminal')
+    parser.add_argument('--shell', action='store_true',
+                       help='Enable shell execution capabilities')
+
     args = parser.parse_args()
 
+    # Handle action flags first - execute action and exit
+    if args.usage:
+        handle_usage()
+        sys.exit(0)
+
+    if args.install_agents:
+        handle_install_agents(args.install_agents)
+        sys.exit(0)
+
+    if args.install_deps:
+        handle_install_deps(args.install_deps, args.web_backend)
+        sys.exit(0)
+
+    if args.tunnel:
+        handle_tunnel(args.tunnel)
+        sys.exit(0)
+
+    if args.invoke_claude:
+        handle_invoke_claude(args.invoke_claude, args.web_backend)
+        sys.exit(0)
+
+    if args.shell:
+        result = handle_shell()
+        if result == 'start_server_with_shell':
+            # Continue to start server with shell enabled
+            pass
+        else:
+            sys.exit(0)
+
+    # No action flags provided - start server (backward compatible)
     print("🥷 CDP Ninja Server")
     print("=" * 40)
     print(f"Chrome DevTools Port: {args.cdp_port}")
     print(f"Bridge API Port: {args.bridge_port}")
     print(f"Debug Mode: {args.debug}")
+
+    # Enable shell execution if --shell flag was used
+    if SHELL_ENABLED:
+        config.enable_shell_execution = True
+        print(f"Shell Execution: ENABLED (POST /system/execute)")
+    else:
+        print(f"Shell Execution: DISABLED")
+
     print("⚠️  DANGEROUS: No input validation")
     print("=" * 40)
 

@@ -1,6 +1,6 @@
 """
-System Routes - RAW system commands and PowerShell execution
-PowerShell toggle required - dangerous by design for testing
+System Routes - RAW system commands and shell execution
+Shell execution toggle required - dangerous by design for testing
 """
 
 import logging
@@ -18,7 +18,7 @@ system_routes = Blueprint('system', __name__)
 @system_routes.route('/system/execute', methods=['POST'])
 def execute_command():
     """
-    Execute RAW system commands - PowerShell/CMD/Bash
+    Execute RAW system commands - PowerShell/CMD/Bash/Shell
 
     @route POST /system/execute
     @param {string} command - ANY command to execute
@@ -28,7 +28,7 @@ def execute_command():
     @returns {object} Command execution result or crash data
 
     @example
-    // Windows PowerShell (requires ENABLE_POWERSHELL=true)
+    // Windows PowerShell (requires ENABLE_SHELL_EXECUTION=true)
     {"command": "Get-Process", "shell": "powershell"}
 
     // Dangerous PowerShell - test RCE
@@ -47,11 +47,11 @@ def execute_command():
     {"command": "'; rm -rf / #", "shell": "bash"}
     """
     try:
-        if not config.enable_powershell:
+        if not config.enable_shell_execution:
             return jsonify({
                 "blocked": True,
-                "error": "PowerShell execution disabled",
-                "message": "Set ENABLE_POWERSHELL=true to enable dangerous system commands",
+                "error": "Shell execution disabled",
+                "message": "Set ENABLE_SHELL_EXECUTION=true to enable dangerous system commands",
                 "security_note": "This is intentionally dangerous for testing purposes"
             }), 403
 
@@ -172,7 +172,7 @@ def get_system_info():
             "machine": platform.machine(),
             "processor": platform.processor(),
             "python_version": platform.python_version(),
-            "powershell_enabled": config.enable_powershell,
+            "shell_execution_enabled": config.enable_shell_execution,
             "available_shells": []
         }
 
