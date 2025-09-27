@@ -1977,6 +1977,12 @@ def install_deps_remote(target_host, web_backend):
     else:
         print("✅ tmux already installed on remote")
 
+    # Install uv (modern Python package manager)
+    if 'uv' not in existing_deps:
+        success &= install_uv_remote(target_host)
+    else:
+        print("✅ uv already installed on remote")
+
     # Install web backend
     if web_backend not in existing_deps:
         success &= install_web_backend_remote(target_host, web_backend, platform_info)
@@ -2141,20 +2147,50 @@ def check_remote_dependencies(target_host):
     import subprocess
 
     existing = []
-    tools = ['claude', 'tmux', 'gotty', 'ttyd']
+    tools = ['claude', 'tmux', 'gotty', 'ttyd', 'uv']
 
     for tool in tools:
         try:
+            # Source shell environment to find tools in PATH (like nvm-installed claude)
             result = subprocess.run(
-                ['ssh', target_host, f'which {tool}'],
+                ['ssh', target_host, f'source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null || true; which {tool}'],
                 capture_output=True, text=True, timeout=10
             )
-            if result.returncode == 0:
+            if result.returncode == 0 and result.stdout.strip():
                 existing.append(tool)
         except Exception:
             pass  # Tool not found, which is expected
 
     return existing
+
+
+def install_uv_remote(target_host):
+    """Install uv (fast Python package manager) on remote host"""
+    import subprocess
+
+    print("🦀 Installing uv on remote...")
+
+    try:
+        # Install uv using the official installer
+        cmd = 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+        result = subprocess.run(
+            ['ssh', target_host, cmd],
+            capture_output=True, text=True, timeout=120
+        )
+
+        if result.returncode == 0:
+            print("✅ uv installed successfully")
+            # Source the shell to make uv available
+            source_cmd = 'source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null || true'
+            subprocess.run(['ssh', target_host, source_cmd], timeout=10)
+            return True
+        else:
+            print(f"❌ uv installation failed: {result.stderr}")
+            return False
+
+    except Exception as e:
+        print(f"❌ uv installation failed: {e}")
+        return False
 
 
 def install_claude_cli_remote(target_host, platform_info):
@@ -2228,40 +2264,62 @@ def install_tmux_remote(target_host, platform_info):
 
 
 def install_web_backend_remote(target_host, web_backend, platform_info):
-    """Install web backend on remote host"""
+    """Install web backend on remote host using uv > pipx > system packages"""
     import subprocess
 
     print(f"📺 Installing {web_backend} on remote...")
 
-    try:
-        if web_backend == 'ttyd':
-            if platform_info['package_manager'] == 'apt-get':
-                cmd = 'sudo apt-get install -y ttyd'
-            elif platform_info['package_manager'] in ['dnf', 'yum']:
-                cmd = f"sudo {platform_info['package_manager']} install -y ttyd"
-            elif platform_info['package_manager'] == 'pacman':
-                cmd = 'sudo pacman -S --noconfirm ttyd'
-            else:
-                print(f"❌ Unsupported package manager for ttyd: {platform_info['package_manager']}")
-                return False
+    # Strategy: Try uv first, then pipx, then system packages
+    strategies = [
+        ('uv', f'source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null || true; uv tool install {web_backend}'),
+        ('pipx', f'pipx install {web_backend}'),
+        ('pip', f'pip install --break-system-packages {web_backend}'),
+    ]
 
-        elif web_backend == 'gotty':
-            # Install gotty from GitHub releases
-            arch_cmd = 'uname -m'
+    # Add system package fallback for ttyd only (gotty isn't in repos)
+    if web_backend == 'ttyd':
+        if platform_info['package_manager'] == 'apt-get':
+            strategies.append(('apt', 'sudo apt-get update && sudo apt-get install -y ttyd'))
+        elif platform_info['package_manager'] in ['dnf', 'yum']:
+            strategies.append(('yum/dnf', f"sudo {platform_info['package_manager']} install -y ttyd"))
+
+    for strategy_name, cmd in strategies:
+        try:
+            print(f"🔧 Trying {strategy_name}...")
             result = subprocess.run(
-                ['ssh', target_host, arch_cmd],
+                ['ssh', target_host, cmd],
+                capture_output=True, text=True, timeout=300
+            )
+
+            if result.returncode == 0:
+                print(f"✅ {web_backend} installed via {strategy_name}")
+                return True
+            else:
+                print(f"❌ {strategy_name} failed: {result.stderr.strip()[:100]}")
+
+        except subprocess.TimeoutExpired:
+            print(f"❌ {strategy_name} timed out")
+        except Exception as e:
+            print(f"❌ {strategy_name} error: {e}")
+
+    # Last resort: GitHub binary for gotty
+    if web_backend == 'gotty':
+        print("🔧 Trying GitHub binary download...")
+        try:
+            arch_result = subprocess.run(
+                ['ssh', target_host, 'uname -m'],
                 capture_output=True, text=True, timeout=10
             )
 
-            if 'x86_64' in result.stdout or 'amd64' in result.stdout:
+            if 'x86_64' in arch_result.stdout or 'amd64' in arch_result.stdout:
                 arch = 'amd64'
-            elif 'aarch64' in result.stdout or 'arm64' in result.stdout:
+            elif 'aarch64' in arch_result.stdout or 'arm64' in arch_result.stdout:
                 arch = 'arm64'
             else:
-                print(f"❌ Unsupported remote architecture for gotty")
+                print(f"❌ Unsupported architecture for gotty binary")
                 return False
 
-            cmd = f"""
+            binary_cmd = f"""
             cd /tmp && \
             wget -O gotty_linux_{arch}.tar.gz https://github.com/yudai/gotty/releases/latest/download/gotty_linux_{arch}.tar.gz && \
             tar -xzf gotty_linux_{arch}.tar.gz && \
@@ -2269,28 +2327,21 @@ def install_web_backend_remote(target_host, web_backend, platform_info):
             sudo chmod +x /usr/local/bin/gotty && \
             rm gotty_linux_{arch}.tar.gz
             """
-        else:
-            print(f"❌ Unsupported web backend: {web_backend}")
-            return False
 
-        result = subprocess.run(
-            ['ssh', target_host, cmd],
-            capture_output=True, text=True, timeout=300
-        )
+            result = subprocess.run(
+                ['ssh', target_host, binary_cmd],
+                capture_output=True, text=True, timeout=300
+            )
 
-        if result.returncode == 0:
-            print(f"✅ {web_backend} installed on remote")
-            return True
-        else:
-            print(f"❌ {web_backend} installation failed: {result.stderr}")
-            return False
+            if result.returncode == 0:
+                print(f"✅ {web_backend} installed via GitHub binary")
+                return True
 
-    except subprocess.TimeoutExpired:
-        print(f"❌ {web_backend} installation timed out")
-        return False
-    except Exception as e:
-        print(f"❌ {web_backend} installation failed: {e}")
-        return False
+        except Exception as e:
+            print(f"❌ GitHub binary installation failed: {e}")
+
+    print(f"❌ All installation methods failed for {web_backend}")
+    return False
 
 
 def verify_remote_installations(target_host, web_backend):
