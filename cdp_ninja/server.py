@@ -1285,7 +1285,7 @@ def handle_tunnel(target_host, instruct_only=False):
     # Auto-detect required ports from bridge configuration
     cdp_port = 9222
     bridge_port = 8888
-    web_port = 8080
+    web_port = 7979
 
     success = setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port)
 
@@ -1328,13 +1328,13 @@ def show_tunnel_instructions(target_host):
     print("\n2. Create SSH tunnels:")
     print(f"   ssh -L 9222:localhost:9222 \\")
     print(f"       -L 8888:localhost:8888 \\")
-    print(f"       -L 8080:localhost:8080 \\")
+    print(f"       -L 7979:localhost:7979 \\")
     print(f"       {target_host} -N")
 
     print("\n3. Background tunnel (recommended):")
     print(f"   ssh -fN -L 9222:localhost:9222 \\")
     print(f"            -L 8888:localhost:8888 \\")
-    print(f"            -L 8080:localhost:8080 \\")
+    print(f"            -L 7979:localhost:7979 \\")
     print(f"            -o ExitOnForwardFailure=yes \\")
     print(f"            -o ServerAliveInterval=60 \\")
     print(f"            {target_host}")
@@ -1342,12 +1342,12 @@ def show_tunnel_instructions(target_host):
     print("\n4. Verify tunnels:")
     print("   # In separate terminal:")
     print("   curl http://localhost:8888/cdp/status")
-    print("   curl http://localhost:8080")
+    print("   curl http://localhost:7979")
 
     print("\n📋 Port Mapping:")
     print("   • 9222 → Chrome DevTools Protocol")
     print("   • 8888 → CDP Ninja Bridge API")
-    print("   • 8080 → Web Terminal (gotty/ttyd)")
+    print("   • 7979 → Web Terminal (gotty/ttyd)")
 
     print("\n🔧 Troubleshooting:")
     print("   • Check if ports are already in use: netstat -tulpn | grep :8888")
@@ -1374,12 +1374,12 @@ def show_invoke_claude_instructions(target_host, web_backend):
 
     print(f"\n4. Start web terminal:")
     if web_backend == 'ttyd':
-        print(f"   ssh {target_host} \"ttyd -p 8080 \\")
+        print(f"   ssh {target_host} \"ttyd -p 7979 \\")
         print(f"       -t titleFixed='Claude CLI' \\")
         print(f"       -t disableLeaveAlert=true \\")
         print(f"       -W tmux attach -t claude\"")
     else:  # gotty
-        print(f"   ssh {target_host} \"gotty -p 8080 \\")
+        print(f"   ssh {target_host} \"gotty -p 7979 \\")
         print(f"       --permit-write \\")
         print(f"       --reconnect \\")
         print(f"       --reconnect-time 10 \\")
@@ -1388,10 +1388,10 @@ def show_invoke_claude_instructions(target_host, web_backend):
         print(f"       tmux attach -t claude\"")
 
     print("\n5. Setup local tunnel (background):")
-    print(f"   ssh -fN -L 8080:localhost:8080 {target_host}")
+    print(f"   ssh -fN -L 7979:localhost:7979 {target_host}")
 
     print("\n6. Access Claude interface:")
-    print("   Open browser: http://localhost:8080")
+    print("   Open browser: http://localhost:7979")
 
     print("\n📋 Web Backend Differences:")
     print("   • ttyd: Lighter, better terminal fidelity, single connection")
@@ -1400,7 +1400,7 @@ def show_invoke_claude_instructions(target_host, web_backend):
     print("\n🔧 Troubleshooting:")
     print(f"   • Check Claude CLI: ssh {target_host} 'claude --version'")
     print(f"   • Check tmux: ssh {target_host} 'tmux list-sessions'")
-    print(f"   • Check web terminal: ssh {target_host} 'curl localhost:8080'")
+    print(f"   • Check web terminal: ssh {target_host} 'curl localhost:7979'")
     print("   • Kill stuck sessions: ssh {target_host} 'tmux kill-session -t claude'")
 
 
@@ -2603,13 +2603,13 @@ def start_remote_claude(target_host, web_backend):
     if web_backend == 'ttyd':
         remote_cmd = '''
         tmux new-session -d -s claude 'claude' 2>/dev/null || true;
-        ttyd -p 8080 -t titleFixed='Claude CLI' -t disableLeaveAlert=true -W tmux attach -t claude &
+        ttyd -p 7979 -t titleFixed='Claude CLI' -t disableLeaveAlert=true -W tmux attach -t claude &
         echo "Claude interface starting..."
         '''
     else:  # gotty
         remote_cmd = '''
         tmux new-session -d -s claude 'claude' 2>/dev/null || true;
-        gotty -p 8080 --permit-write --reconnect --reconnect-time 10 --max-connection 5 --title-format 'Claude CLI - {{.hostname}}' tmux attach -t claude &
+        gotty -p 7979 --permit-write --reconnect --reconnect-time 10 --max-connection 5 --title-format 'Claude CLI - {{.hostname}}' tmux attach -t claude &
         echo "Claude interface starting..."
         '''
 
@@ -2619,11 +2619,11 @@ def start_remote_claude(target_host, web_backend):
             capture_output=True, text=True, timeout=30
         )
         if result.returncode == 0:
-            print(f"✅ Claude interface started on {target_host}:8080")
-            print(f"🌐 Direct access: http://{target_host}:8080")
+            print(f"✅ Claude interface started on {target_host}:7979")
+            print(f"🌐 Direct access: http://{target_host}:7979")
             print("\n💡 Setup local tunnel for localhost access:")
-            print(f"   ssh -fN -L 8080:localhost:8080 {target_host}")
-            print(f"   Then open: http://localhost:8080")
+            print(f"   ssh -fN -L 7979:localhost:7979 {target_host}")
+            print(f"   Then open: http://localhost:7979")
             return True
         else:
             print(f"❌ Failed to start Claude interface: {result.stderr}")

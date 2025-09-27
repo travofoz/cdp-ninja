@@ -362,7 +362,7 @@ Start Claude interface in tmux with web terminal access
 ```bash
 ssh user@host "
   tmux new-session -d -s claude 'claude' 2>/dev/null || true
-  ttyd -p 8080 \
+  ttyd -p 7979 \
     -t titleFixed='Claude CLI' \
     -t disableLeaveAlert=true \
     -W \
@@ -374,7 +374,7 @@ ssh user@host "
 ```bash
 ssh user@host "
   tmux new-session -d -s claude 'claude' 2>/dev/null || true
-  gotty -p 8080 \
+  gotty -p 7979 \
     --permit-write \
     --reconnect \
     --reconnect-time 10 \
