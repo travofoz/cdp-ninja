@@ -1331,10 +1331,12 @@ def show_tunnel_instructions(target_host):
     print(f"       -L 8080:localhost:8080 \\")
     print(f"       {target_host} -N")
 
-    print("\n3. Alternative (background tunnel):")
+    print("\n3. Background tunnel (recommended):")
     print(f"   ssh -fN -L 9222:localhost:9222 \\")
     print(f"            -L 8888:localhost:8888 \\")
     print(f"            -L 8080:localhost:8080 \\")
+    print(f"            -o ExitOnForwardFailure=yes \\")
+    print(f"            -o ServerAliveInterval=60 \\")
     print(f"            {target_host}")
 
     print("\n4. Verify tunnels:")
@@ -1385,8 +1387,8 @@ def show_invoke_claude_instructions(target_host, web_backend):
         print(f"       --title-format 'Claude CLI - {{.hostname}}' \\")
         print(f"       tmux attach -t claude\"")
 
-    print("\n5. Setup local tunnel (in separate terminal):")
-    print(f"   ssh -L 8080:localhost:8080 {target_host} -N")
+    print("\n5. Setup local tunnel (background):")
+    print(f"   ssh -fN -L 8080:localhost:8080 {target_host}")
 
     print("\n6. Access Claude interface:")
     print("   Open browser: http://localhost:8080")
@@ -2495,20 +2497,85 @@ def install_ttyd_local(platform_info):
 
 
 def setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port):
-    """Setup SSH tunnels for remote access"""
-    print("🚇 SSH tunnel setup instructions:")
-    print("⚠️  Run this command in a separate terminal:")
-    print(f"ssh -L {cdp_port}:localhost:{cdp_port} \\")
-    print(f"    -L {bridge_port}:localhost:{bridge_port} \\")
-    print(f"    -L {web_port}:localhost:{web_port} \\")
-    print(f"    {target_host} -N")
+    """Setup SSH tunnels for remote access with background processes"""
+    import subprocess
 
-    print("\n💡 Verification:")
-    print("   # In another terminal:")
-    print(f"   curl http://localhost:{bridge_port}/cdp/status")
+    print("🔑 Testing SSH key authentication...")
 
-    # For now, this is instructional only - return True
-    return True
+    # Test SSH access first
+    try:
+        result = subprocess.run(
+            ['ssh', '-o', 'PasswordAuthentication=no', '-o', 'ConnectTimeout=10',
+             target_host, 'echo "SSH test"'],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode != 0:
+            print("❌ SSH key authentication failed")
+            print("💡 Run: ssh-keygen -t ed25519 && ssh-copy-id", target_host)
+            return False
+    except Exception as e:
+        print(f"❌ SSH connection failed: {e}")
+        return False
+
+    print("✅ SSH access verified")
+
+    # Kill any existing tunnels first
+    try:
+        subprocess.run(['pkill', '-f', f'ssh.*-L.*{cdp_port}'],
+                      capture_output=True, timeout=5)
+    except:
+        pass  # Ignore if no existing tunnels
+
+    print("🚇 Creating background SSH tunnels...")
+
+    # Create background tunnel with -fN flags
+    try:
+        tunnel_cmd = [
+            'ssh', '-fN',
+            '-o', 'PasswordAuthentication=no',
+            '-o', 'ExitOnForwardFailure=yes',
+            '-o', 'ServerAliveInterval=60',
+            '-L', f'{cdp_port}:localhost:{cdp_port}',
+            '-L', f'{bridge_port}:localhost:{bridge_port}',
+            '-L', f'{web_port}:localhost:{web_port}',
+            target_host
+        ]
+
+        result = subprocess.run(tunnel_cmd, capture_output=True, text=True, timeout=30)
+
+        if result.returncode == 0:
+            print(f"✅ Background SSH tunnels created to {target_host}")
+            print(f"📡 Port forwarding:")
+            print(f"   • localhost:{cdp_port} → {target_host}:{cdp_port} (Chrome DevTools)")
+            print(f"   • localhost:{bridge_port} → {target_host}:{bridge_port} (CDP Ninja)")
+            print(f"   • localhost:{web_port} → {target_host}:{web_port} (Web Terminal)")
+
+            # Verify tunnel works
+            import time
+            time.sleep(2)  # Give tunnel time to establish
+
+            try:
+                import requests
+                response = requests.get(f"http://localhost:{bridge_port}/health", timeout=5)
+                if response.status_code == 200:
+                    print("✅ Tunnel verification successful")
+                else:
+                    print("⚠️  Tunnel created but service not responding")
+            except:
+                print("⚠️  Tunnel created but verification failed (service may not be running)")
+
+            print(f"\n🔧 To kill tunnel later: pkill -f 'ssh.*-L.*{cdp_port}'")
+            return True
+        else:
+            print(f"❌ Failed to create tunnel: {result.stderr}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ SSH tunnel creation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ Failed to create tunnel: {e}")
+        return False
 
 
 def start_remote_claude(target_host, web_backend):
@@ -2553,9 +2620,10 @@ def start_remote_claude(target_host, web_backend):
         )
         if result.returncode == 0:
             print(f"✅ Claude interface started on {target_host}:8080")
-            print(f"🌐 Access via: http://{target_host}:8080")
-            print("\n💡 Setup tunnel in separate terminal:")
-            print(f"   ssh -L 8080:localhost:8080 {target_host} -N")
+            print(f"🌐 Direct access: http://{target_host}:8080")
+            print("\n💡 Setup local tunnel for localhost access:")
+            print(f"   ssh -fN -L 8080:localhost:8080 {target_host}")
+            print(f"   Then open: http://localhost:8080")
             return True
         else:
             print(f"❌ Failed to start Claude interface: {result.stderr}")
