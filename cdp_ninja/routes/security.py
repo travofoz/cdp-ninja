@@ -1,7 +1,7 @@
 """
-Righteous - Security Guardian Ninja School (Gikan Ryū)
+Security Testing Routes
 Vulnerability assessment and ethical security testing
-8 endpoints focused on defensive security measures
+8 endpoints for defensive security analysis
 """
 
 import logging
@@ -15,10 +15,10 @@ from .route_utils import (
 
 logger = logging.getLogger(__name__)
 
-righteous_routes = Blueprint('righteous', __name__)
+security_routes = Blueprint('security', __name__)
 
 
-@righteous_routes.route('/cdp/security/vulnerabilities', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/vulnerabilities', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY])
 def security_vulnerabilities():
     """
@@ -201,7 +201,7 @@ def security_vulnerabilities():
                               {'target_url': target_url}, 'security_vulnerabilities')
 
 
-@righteous_routes.route('/cdp/security/authentication', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/authentication', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY, CDPDomain.NETWORK])
 def authentication_analysis():
     """
@@ -387,7 +387,7 @@ def authentication_analysis():
                               {'auth_type': auth_type}, 'authentication_analysis')
 
 
-@righteous_routes.route('/cdp/security/data_protection', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/data_protection', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY])
 def data_protection_analysis():
     """
@@ -575,7 +575,7 @@ def data_protection_analysis():
                               {'check_forms': check_forms, 'check_storage': check_storage}, 'data_protection_analysis')
 
 
-@righteous_routes.route('/cdp/security/threat_assessment', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/threat_assessment', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY, CDPDomain.RUNTIME])
 def threat_assessment():
     """
@@ -793,7 +793,7 @@ def threat_assessment():
                               {'focus_area': focus_area}, 'threat_assessment')
 
 
-@righteous_routes.route('/cdp/security/penetration_test', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/penetration_test', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY, CDPDomain.RUNTIME])
 def penetration_test():
     """
@@ -1037,7 +1037,7 @@ def penetration_test():
                               {'test_type': test_type, 'safe_mode': safe_mode}, 'penetration_test')
 
 
-@righteous_routes.route('/cdp/security/compliance_check', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/compliance_check', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY])
 def compliance_check():
     """
@@ -1252,7 +1252,7 @@ def compliance_check():
                               {'standard': standard}, 'compliance_check')
 
 
-@righteous_routes.route('/cdp/security/ethical_hacking', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/ethical_hacking', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY, CDPDomain.RUNTIME])
 def ethical_hacking():
     """
@@ -1491,7 +1491,7 @@ def ethical_hacking():
                               {'technique': technique}, 'ethical_hacking')
 
 
-@righteous_routes.route('/cdp/security/protection_validation', methods=['GET', 'POST'])
+@security_routes.route('/cdp/security/protection_validation', methods=['GET', 'POST'])
 @require_domains([CDPDomain.SECURITY])
 def protection_validation():
     """

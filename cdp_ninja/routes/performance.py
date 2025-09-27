@@ -1,6 +1,7 @@
 """
-Cloud Hiding Routes - Performance observation and memory monitoring for Cloud Hiding ninja
-Background performance analysis, memory monitoring, and rendering optimization using Performance domain
+Performance Monitoring Routes
+Background performance analysis, memory monitoring, and rendering optimization
+Using Performance domain for Core Web Vitals and profiling
 """
 
 import logging
@@ -14,10 +15,10 @@ from cdp_ninja.routes.route_utils import (
 )
 
 logger = logging.getLogger(__name__)
-cloud_hiding_routes = Blueprint('cloud_hiding', __name__)
+performance_routes = Blueprint('performance', __name__)
 
 
-@cloud_hiding_routes.route('/cdp/performance/metrics', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/metrics', methods=['GET', 'POST'])
 def collect_performance_metrics():
     """
     Collect comprehensive performance metrics and Core Web Vitals
@@ -264,7 +265,7 @@ def collect_performance_metrics():
         return handle_cdp_error("collect_performance_metrics", e, params, "collect_performance_metrics")
 
 
-@cloud_hiding_routes.route('/cdp/performance/memory_monitor', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/memory_monitor', methods=['GET', 'POST'])
 def monitor_memory_usage():
     """
     Monitor memory usage patterns and detect potential leaks in background
@@ -520,7 +521,7 @@ def monitor_memory_usage():
         return handle_cdp_error("monitor_memory_usage", e, params, "monitor_memory_usage")
 
 
-@cloud_hiding_routes.route('/cdp/performance/rendering_metrics', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/rendering_metrics', methods=['GET', 'POST'])
 def analyze_rendering_performance():
     """
     Analyze rendering performance including frame rates and paint events
@@ -810,7 +811,7 @@ def analyze_rendering_performance():
         return handle_cdp_error("analyze_rendering_performance", e, params, "analyze_rendering_performance")
 
 
-@cloud_hiding_routes.route('/cdp/performance/cpu_profiling', methods=['POST'])
+@performance_routes.route('/cdp/performance/cpu_profiling', methods=['POST'])
 def profile_cpu_usage():
     """
     Profile CPU usage and identify performance bottlenecks
@@ -1100,7 +1101,7 @@ def profile_cpu_usage():
         return handle_cdp_error("profile_cpu_usage", e, data, "profile_cpu_usage")
 
 
-@cloud_hiding_routes.route('/cdp/performance/resource_timing', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/resource_timing', methods=['GET', 'POST'])
 def analyze_resource_timing():
     """
     Analyze resource loading performance and identify optimization opportunities
@@ -1418,7 +1419,7 @@ def analyze_resource_timing():
         return handle_cdp_error("analyze_resource_timing", e, params, "analyze_resource_timing")
 
 
-@cloud_hiding_routes.route('/cdp/performance/background_tasks', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/background_tasks', methods=['GET', 'POST'])
 def monitor_background_tasks():
     """
     Monitor background tasks and service worker performance
@@ -1755,7 +1756,7 @@ def monitor_background_tasks():
         return handle_cdp_error("monitor_background_tasks", e, params, "monitor_background_tasks")
 
 
-@cloud_hiding_routes.route('/cdp/performance/optimization_recommendations', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/optimization_recommendations', methods=['GET', 'POST'])
 def generate_optimization_recommendations():
     """
     Generate comprehensive performance optimization recommendations
@@ -2165,7 +2166,7 @@ def generate_optimization_recommendations():
         return handle_cdp_error("generate_optimization_recommendations", e, params, "generate_optimization_recommendations")
 
 
-@cloud_hiding_routes.route('/cdp/performance/core_web_vitals', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/core_web_vitals', methods=['GET', 'POST'])
 def monitor_core_web_vitals():
     """
     Monitor Core Web Vitals metrics in real-time
@@ -2586,7 +2587,7 @@ def monitor_core_web_vitals():
         return handle_cdp_error("monitor_core_web_vitals", e, params, "monitor_core_web_vitals")
 
 
-@cloud_hiding_routes.route('/cdp/performance/budget_tracking', methods=['GET', 'POST'])
+@performance_routes.route('/cdp/performance/budget_tracking', methods=['GET', 'POST'])
 def track_performance_budget():
     """
     Track performance budget compliance and resource usage limits
@@ -3020,7 +3021,7 @@ def track_performance_budget():
         return handle_cdp_error("track_performance_budget", e, params, "track_performance_budget")
 
 
-@cloud_hiding_routes.route('/cdp/performance/optimization_impact', methods=['POST'])
+@performance_routes.route('/cdp/performance/optimization_impact', methods=['POST'])
 def measure_optimization_impact():
     """
     Measure the impact of performance optimizations through before/after analysis

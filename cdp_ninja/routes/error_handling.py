@@ -1,5 +1,5 @@
 """
-Error Handling Routes - Error defense and recovery analysis for Divine Immovable ninja
+Error Handling Routes - Error defense and recovery analysis
 Error boundary analysis, exception management, and recovery flow validation using safe domains
 """
 

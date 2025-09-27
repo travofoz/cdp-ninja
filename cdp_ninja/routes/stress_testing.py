@@ -1,5 +1,5 @@
 """
-Stress Testing Routes - Aggressive boundary testing for Tiger Knockdown ninja
+Stress Testing Routes - Aggressive boundary testing and performance limits
 Breaking point discovery through controlled chaos and structural assault testing
 """
 

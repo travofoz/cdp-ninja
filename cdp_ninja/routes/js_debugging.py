@@ -1,5 +1,5 @@
 """
-JS Debugging Routes - Advanced JavaScript debugging for Nine Demons ninja
+JS Debugging Routes - Advanced JavaScript debugging and runtime analysis
 JavaScript mastery through Runtime domain analysis and async operation monitoring
 """
 

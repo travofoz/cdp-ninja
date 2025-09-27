@@ -14,10 +14,10 @@ from .js_debugging import js_debugging_routes
 from .stress_testing import stress_testing_routes
 from .system import system_routes
 from .error_handling import error_handling_routes
-from .cloud_hiding import cloud_hiding_routes
-from .righteous import righteous_routes
-from .high_tree import high_tree_routes
-from .tiger_knockdown import tiger_knockdown_routes
+from .performance import performance_routes
+from .security import security_routes
+from .accessibility import accessibility_routes
+from .stress_testing_advanced import stress_testing_advanced_routes
 
 __all__ = [
     'browser_routes',
@@ -30,8 +30,8 @@ __all__ = [
     'stress_testing_routes',
     'system_routes',
     'error_handling_routes',
-    'cloud_hiding_routes',
-    'righteous_routes',
-    'high_tree_routes',
-    'tiger_knockdown_routes'
+    'performance_routes',
+    'security_routes',
+    'accessibility_routes',
+    'stress_testing_advanced_routes'
 ]

@@ -1,7 +1,7 @@
 """
-Tiger Knockdown - Aggressive Stress Testing Module (Kotō Ryū)
+Advanced Stress Testing Routes
 Breaking point discovery and chaos engineering
-10 endpoints focused on boundary testing and structural assault
+10 endpoints for boundary testing and structural assault
 """
 
 import logging
@@ -15,10 +15,10 @@ from .route_utils import (
 
 logger = logging.getLogger(__name__)
 
-tiger_knockdown_routes = Blueprint('tiger_knockdown', __name__)
+stress_testing_advanced_routes = Blueprint('stress_testing_advanced', __name__)
 
 
-@tiger_knockdown_routes.route('/cdp/stress/click_storm', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/click_storm', methods=['POST'])
 @require_domains([CDPDomain.DOM, CDPDomain.INPUT])
 def click_storm():
     """
@@ -195,7 +195,7 @@ def click_storm():
         return handle_cdp_error('click_storm', e, {'target': target}, 'click_storm')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/memory_bomb', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/memory_bomb', methods=['POST'])
 @require_domains([CDPDomain.RUNTIME, CDPDomain.MEMORY])
 def memory_bomb():
     """
@@ -434,7 +434,7 @@ def memory_bomb():
         return handle_cdp_error('memory_bomb', e, {'size_mb': size_mb}, 'memory_bomb')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/cpu_burn', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/cpu_burn', methods=['POST'])
 @require_domains([CDPDomain.RUNTIME])
 def cpu_burn():
     """
@@ -672,7 +672,7 @@ def cpu_burn():
         return handle_cdp_error('cpu_burn', e, {'duration': duration}, 'cpu_burn')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/input_overflow', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/input_overflow', methods=['POST'])
 @require_domains([CDPDomain.DOM, CDPDomain.INPUT])
 def input_overflow():
     """
@@ -912,7 +912,7 @@ def input_overflow():
         return handle_cdp_error('input_overflow', e, {'selector': selector}, 'input_overflow')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/storage_flood', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/storage_flood', methods=['POST'])
 @require_domains([CDPDomain.RUNTIME])
 def storage_flood():
     """
@@ -1196,7 +1196,7 @@ def storage_flood():
         return handle_cdp_error('storage_flood', e, {'storage_type': storage_type}, 'storage_flood')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/chaos_monkey', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/chaos_monkey', methods=['POST'])
 @require_domains([CDPDomain.DOM, CDPDomain.INPUT, CDPDomain.RUNTIME])
 def chaos_monkey():
     """
@@ -1579,7 +1579,7 @@ def chaos_monkey():
         return handle_cdp_error('chaos_monkey', e, {'duration': duration}, 'chaos_monkey')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/race_conditions', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/race_conditions', methods=['POST'])
 @require_domains([CDPDomain.RUNTIME])
 def race_conditions():
     """
@@ -1985,7 +1985,7 @@ def race_conditions():
                               {'async_operations': async_operations}, 'race_conditions')
 
 
-@tiger_knockdown_routes.route('/cdp/stress/full_assault', methods=['POST'])
+@stress_testing_advanced_routes.route('/cdp/stress/full_assault', methods=['POST'])
 @require_domains([CDPDomain.DOM, CDPDomain.INPUT, CDPDomain.RUNTIME, CDPDomain.MEMORY])
 def full_assault():
     """

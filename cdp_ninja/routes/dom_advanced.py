@@ -1,5 +1,5 @@
 """
-DOM Advanced Routes - Precision DOM manipulation for Jewel Tiger ninja
+DOM Advanced Routes - Precision DOM manipulation and element analysis
 Raw CDP commands for element analysis, positioning, and shadow DOM access
 """
 

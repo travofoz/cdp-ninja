@@ -1,5 +1,5 @@
 """
-Network Intelligence Routes - Advanced network analysis for Jewel Heart ninja
+Network Intelligence Routes - Advanced network analysis and monitoring
 Patient intelligence gathering via Network domain monitoring and analysis
 """
 

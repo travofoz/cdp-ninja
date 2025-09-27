@@ -1,7 +1,7 @@
 """
-High Tree - Accessibility Advocate Ninja School (Takagi Yōshin Ryū)
-UX and accessibility analysis with compassionate elevated perspective
-8 endpoints focused on inclusive design and WCAG compliance
+Accessibility Testing Routes
+WCAG compliance testing, screen reader compatibility, and UX analysis
+8 endpoints for comprehensive accessibility validation
 """
 
 import logging
@@ -15,10 +15,10 @@ from .route_utils import (
 
 logger = logging.getLogger(__name__)
 
-high_tree_routes = Blueprint('high_tree', __name__)
+accessibility_routes = Blueprint('accessibility', __name__)
 
 
-@high_tree_routes.route('/cdp/accessibility/audit', methods=['GET', 'POST'])
+@accessibility_routes.route('/cdp/accessibility/audit', methods=['GET', 'POST'])
 @require_domains([CDPDomain.ACCESSIBILITY, CDPDomain.DOM])
 def accessibility_audit():
     """
@@ -328,7 +328,7 @@ def accessibility_audit():
                               {'wcag_level': wcag_level}, 'accessibility_audit')
 
 
-@high_tree_routes.route('/cdp/accessibility/keyboard', methods=['GET', 'POST'])
+@accessibility_routes.route('/cdp/accessibility/keyboard', methods=['GET', 'POST'])
 @require_domains([CDPDomain.ACCESSIBILITY, CDPDomain.DOM])
 def keyboard_navigation():
     """
@@ -547,7 +547,7 @@ def keyboard_navigation():
                               {'tab_order': tab_order, 'focus_visible': focus_visible}, 'keyboard_navigation')
 
 
-@high_tree_routes.route('/cdp/accessibility/contrast', methods=['GET', 'POST'])
+@accessibility_routes.route('/cdp/accessibility/contrast', methods=['GET', 'POST'])
 @require_domains([CDPDomain.ACCESSIBILITY, CDPDomain.DOM])
 def contrast_analysis():
     """
@@ -761,7 +761,7 @@ def contrast_analysis():
                               {'minimum': minimum}, 'contrast_analysis')
 
 
-@high_tree_routes.route('/cdp/accessibility/screen_reader', methods=['GET', 'POST'])
+@accessibility_routes.route('/cdp/accessibility/screen_reader', methods=['GET', 'POST'])
 @require_domains([CDPDomain.ACCESSIBILITY, CDPDomain.DOM])
 def screen_reader_simulation():
     """
@@ -1047,7 +1047,7 @@ def screen_reader_simulation():
                               {'simulate': simulate, 'verbose': verbose}, 'screen_reader_simulation')
 
 
-@high_tree_routes.route('/cdp/accessibility/form_analysis', methods=['POST'])
+@accessibility_routes.route('/cdp/accessibility/form_analysis', methods=['POST'])
 @require_domains([CDPDomain.ACCESSIBILITY, CDPDomain.DOM])
 def form_accessibility_analysis():
     """
@@ -1372,7 +1372,7 @@ def form_accessibility_analysis():
                               {'selector': selector}, 'form_accessibility_analysis')
 
 
-@high_tree_routes.route('/cdp/accessibility/landmarks', methods=['POST'])
+@accessibility_routes.route('/cdp/accessibility/landmarks', methods=['POST'])
 @require_domains([CDPDomain.ACCESSIBILITY, CDPDomain.DOM])
 def landmark_navigation_analysis():
     """
@@ -1675,7 +1675,7 @@ def landmark_navigation_analysis():
                               {'semantic_structure': semantic_structure, 'navigation': navigation}, 'landmark_navigation_analysis')
 
 
-@high_tree_routes.route('/cdp/ux/flow_analysis', methods=['GET', 'POST'])
+@accessibility_routes.route('/cdp/ux/flow_analysis', methods=['GET', 'POST'])
 @require_domains([CDPDomain.DOM, CDPDomain.RUNTIME])
 def user_flow_analysis():
     """
@@ -1961,7 +1961,7 @@ def user_flow_analysis():
                               {'entry_points': entry_points, 'conversions': conversions}, 'user_flow_analysis')
 
 
-@high_tree_routes.route('/cdp/ux/responsive', methods=['GET', 'POST'])
+@accessibility_routes.route('/cdp/ux/responsive', methods=['GET', 'POST'])
 @require_domains([CDPDomain.DOM, CDPDomain.RUNTIME])
 def responsive_design_analysis():
     """
