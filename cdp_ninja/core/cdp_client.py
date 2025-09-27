@@ -12,6 +12,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
+from .domain_manager import get_domain_manager, CDPDomain as DomainManagerCDPDomain
 from queue import Queue, Empty, Full
 from threading import Thread, Lock, Event
 from typing import Dict, List, Optional, Any, Callable
@@ -386,27 +387,12 @@ class CDPClient:
             return {"error": str(e)}
 
     def _enable_default_domains(self) -> bool:
-        """Enable essential CDP domains"""
-        domains = [
-            CDPDomain.NETWORK,
-            CDPDomain.RUNTIME,
-            CDPDomain.PAGE,
-            CDPDomain.DOM,
-            CDPDomain.CONSOLE
-            # Input domain doesn't have enable method - works directly
-        ]
+        """Enable essential CDP domains using domain manager"""
+        domain_manager = get_domain_manager()
+        domain_manager.set_cdp_client(self)
 
-        success_count = 0
-        for domain in domains:
-            result = self.send_command(f"{domain.value}.enable", timeout=5)
-            if 'error' not in result:
-                logger.debug(f"Enabled {domain.value} domain")
-                success_count += 1
-            else:
-                logger.warning(f"Failed to enable {domain.value}: {result.get('error')}")
-
-        logger.info(f"Enabled {success_count}/{len(domains)} CDP domains")
-        return success_count == len(domains)
+        # Enable default safe domains
+        return domain_manager.enable_default_domains()
 
     def register_event_handler(self, method: str, handler: Callable[[CDPEvent], None]):
         """Register callback for specific CDP event"""

@@ -238,28 +238,63 @@ response = requests.post("http://localhost:8888/debug/reproduce", json={
 print(f"Bug reproduced: {response.json()['completed']}")
 ```
 
-## Claude Code Integration
+## Claude Code Integration - Nine Ninja Schools
 
-Add to your Claude Code agent configuration:
+CDP Ninja now includes **9 specialized debugging agents** inspired by traditional ninja martial arts schools. Each agent is a focused expert that routes complex issues to appropriate specialists.
 
-```markdown
-cdp-debugger: Browser debugging specialist using Chrome DevTools Protocol.
-Captures network requests, console logs, executes JavaScript, takes screenshots,
-clicks elements, fills forms. Use PROACTIVELY for debugging client-side issues,
-reproducing bugs, and automated browser interaction. (Tools: WebFetch to CDP bridge)
+### The Nine Schools Dojo 🥷
+
+```yaml
+🥷 cdp-ninja-hidden-door      # Reconnaissance specialist (20 tools)
+⚔️ cdp-ninja-nine-demons      # JavaScript master (30 tools)
+💎 cdp-ninja-jewel-tiger      # DOM precision surgeon (40 tools)
+🔷 cdp-ninja-jewel-heart      # Network intelligence spy (30 tools)
+🛡️ cdp-ninja-divine-immovable # Error defense shield (25 tools)
+☁️ cdp-ninja-cloud-hiding     # Performance observer (30 tools)
+🌳 cdp-ninja-high-tree        # Accessibility advocate (25 tools)
+🐅 cdp-ninja-tiger-knockdown  # Aggressive stress tester (35 tools)
+🔒 cdp-ninja-righteous        # Security guardian (30 tools)
 ```
 
-Usage:
+### Quick Start Guide
+
+**For general debugging** - start with Hidden Door:
 ```python
 from tools import Task
 
-# Use the debugging agent
 Task(
-    subagent_type="cdp-debugger",
-    description="Debug login form",
-    prompt="Click login button 5 times rapidly and capture any console errors or network failures"
+    subagent_type="cdp-ninja-hidden-door",
+    description="Quick debug analysis",
+    prompt="Check if login form is working - screenshot and console errors"
 )
 ```
+
+**For specific issues** - use the specialist:
+```python
+# JavaScript errors → Nine Demons
+Task(subagent_type="cdp-ninja-nine-demons",
+     prompt="Debug TypeError in authentication flow")
+
+# DOM/form issues → Jewel Tiger
+Task(subagent_type="cdp-ninja-jewel-tiger",
+     prompt="Submit button not clickable, analyze form state")
+
+# Network problems → Jewel Heart
+Task(subagent_type="cdp-ninja-jewel-heart",
+     prompt="API calls failing intermittently")
+
+# Performance issues → Cloud Hiding
+Task(subagent_type="cdp-ninja-cloud-hiding",
+     prompt="Page loads slowly, find bottlenecks")
+```
+
+### Architecture Benefits
+
+- **No tool spam**: Each agent uses 20-40 focused tools (vs 96 random tools)
+- **Domain expertise**: Specialists understand their specific debugging domain
+- **Smart routing**: Agents recommend appropriate specialists for complex issues
+- **Self-sufficient**: Each agent includes complete CDP API knowledge
+- **Authentic philosophy**: Based on real Bujinkan ninja martial arts traditions
 
 ## Timeout Configuration
 

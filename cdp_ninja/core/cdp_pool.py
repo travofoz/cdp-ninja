@@ -11,6 +11,7 @@ from queue import Queue, Empty
 from typing import Optional, Dict, Any
 
 from .cdp_client import CDPClient
+from .domain_manager import initialize_domain_manager, shutdown_domain_manager, DomainRiskLevel
 
 logger = logging.getLogger(__name__)
 
@@ -309,24 +310,35 @@ def get_global_pool() -> Optional[CDPConnectionPool]:
     return _global_pool
 
 
-def initialize_global_pool(max_connections: int = 5, port: int = 9222) -> CDPConnectionPool:
+def initialize_global_pool(max_connections: int = 5, port: int = 9222,
+                          max_risk_level: DomainRiskLevel = DomainRiskLevel.MEDIUM) -> CDPConnectionPool:
     """
-    Initialize the global CDP connection pool
+    Initialize the global CDP connection pool and domain manager
 
     @param {int} max_connections - Maximum concurrent connections
     @param {int} port - Chrome DevTools port
+    @param {DomainRiskLevel} max_risk_level - Maximum domain risk level allowed
     @returns {CDPConnectionPool} Initialized pool
     """
     global _global_pool
+
+    # Initialize domain manager first
+    initialize_domain_manager(max_risk_level)
+    logger.info(f"Initialized domain manager with max risk level: {max_risk_level.value}")
+
+    # Initialize connection pool
     _global_pool = CDPConnectionPool(max_connections=max_connections, port=port)
     return _global_pool
 
 
 def shutdown_global_pool():
     """
-    Shutdown the global connection pool
+    Shutdown the global connection pool and domain manager
     """
     global _global_pool
     if _global_pool:
         _global_pool.shutdown()
         _global_pool = None
+
+    # Shutdown domain manager
+    shutdown_domain_manager()
