@@ -301,7 +301,7 @@ def check_element_visibility():
                         ...checks,
                         basic_visible: basicVisible,
                         strict_visible: strictVisible,
-                        is_visible: {strict ? 'checks.strict_visible' : 'checks.basic_visible'},
+                        is_visible: {'strictVisible' if strict else 'basicVisible'},
                         bounds: {{
                             x: rect.x,
                             y: rect.y,
