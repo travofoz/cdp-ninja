@@ -407,15 +407,16 @@ Enable shell execution (bash/ps1/zsh) instead of env
 ### Implementation Status
 - **Bridge Layer**: ✅ COMPLETE (89 endpoints, all domains)
 - **Agent Layer**: ✅ COMPLETE (9 ninja schools documented)
-- **Deployment Layer**: ❌ PENDING (6 CLI tools need implementation)
+- **Deployment Layer**: ✅ COMPLETE (6 CLI tools implemented)
 
-### Phase 4 CLI Tools Summary
-1. **--install-deps** - Install Claude CLI, tmux, gotty/ttyd with sudo
-2. **--install-agents** - Deploy agents locally/remotely with conflict resolution
-3. **--tunnel** - Auto SSH tunnels for agent communication
-4. **--invoke-claude** - Web-accessible Claude via ttyd/gotty in tmux
-5. **--usage** - Parse and output API documentation
-6. **--shell** - Enable full shell execution capabilities
+### Phase 4 CLI Tools Summary ✅ ALL IMPLEMENTED
+1. **--install-deps** - ✅ Install Claude CLI, tmux, gotty/ttyd with sudo
+2. **--install-agents** - ✅ Deploy agents locally/remotely with conflict resolution
+3. **--tunnel** - ✅ Auto SSH tunnels for agent communication
+4. **--invoke-claude** - ✅ Web-accessible Claude via ttyd/gotty in tmux
+5. **--usage** - ✅ Parse and output API documentation
+6. **--shell** - ✅ Enable full shell execution capabilities
+7. **--instruct-only** - ✅ Show manual instructions instead of executing
 
 ## Critical Success Factors
 
@@ -498,15 +499,21 @@ CDP Ninja Project Structure:
 ### Phase 3 Bridge Implementation COMPLETE ✅
 The bridge architecture is clean and **89 endpoints are implemented** across all Nine Schools functional domains. Original planning anticipated ~90 total endpoints - we have achieved full coverage.
 
-### Phase 4 Next: Deployment Features
-Ready to implement the CLI deployment toolkit:
-- `--install-agents` - Remote agent deployment via SCP
-- `--tunnel` - SSH tunnel automation
-- `--invoke-claude` - Remote Claude interface setup
-- `--usage` - Complete API documentation output
-- `--shell` - Shell execution capabilities
+### CDP Ninja v2.0.0 COMPLETE ✅
+All deployment features implemented:
+- ✅ `--install-agents` - Remote agent deployment via SCP with conflict resolution
+- ✅ `--tunnel` - SSH tunnel automation with auto-detection
+- ✅ `--invoke-claude` - Remote Claude interface setup with ttyd/gotty
+- ✅ `--usage` - Complete API documentation output
+- ✅ `--shell` - Shell execution capabilities
+- ✅ `--install-deps` - Dependency installation automation
+- ✅ `--instruct-only` - Manual instruction fallback
 
-The Nine Schools have achieved their full power. Phase 4 deployment features await implementation. 🥷⚔️💎🔷🛡️☁️🌳🐅🔒
+**The Nine Schools have achieved their full power. CDP Ninja v2.0.0 is production ready.** 🥷⚔️💎🔷🛡️☁️🌳🐅🔒
+
+**Release Tags:**
+- `v1.0.6` - Truly lite version (pre-Nine Schools)
+- `v2.0.0` - Full Nine Schools + Deployment toolkit
 
 ---
 
