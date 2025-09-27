@@ -23,7 +23,7 @@ import psutil
 from cdp_ninja.core.cdp_client import CDPClient, CDPEvent
 from cdp_ninja.core.cdp_pool import CDPConnectionPool, get_global_pool, initialize_global_pool, shutdown_global_pool
 from cdp_ninja.config import config
-from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes, dom_routes, dom_advanced_routes, network_intelligence_routes, js_debugging_routes, stress_testing_routes, system_routes, error_handling_routes, cloud_hiding_routes, righteous_routes
+from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes, dom_routes, dom_advanced_routes, network_intelligence_routes, js_debugging_routes, stress_testing_routes, system_routes, error_handling_routes, cloud_hiding_routes, righteous_routes, high_tree_routes, tiger_knockdown_routes
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +65,8 @@ class CDPBridgeServer:
         self.app.register_blueprint(error_handling_routes)
         self.app.register_blueprint(cloud_hiding_routes)
         self.app.register_blueprint(righteous_routes)
+        self.app.register_blueprint(high_tree_routes)
+        self.app.register_blueprint(tiger_knockdown_routes)
 
         # Health & Status
         self.app.route('/')(self.index)

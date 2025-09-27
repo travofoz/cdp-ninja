@@ -16,6 +16,8 @@ from .system import system_routes
 from .error_handling import error_handling_routes
 from .cloud_hiding import cloud_hiding_routes
 from .righteous import righteous_routes
+from .high_tree import high_tree_routes
+from .tiger_knockdown import tiger_knockdown_routes
 
 __all__ = [
     'browser_routes',
@@ -29,5 +31,7 @@ __all__ = [
     'system_routes',
     'error_handling_routes',
     'cloud_hiding_routes',
-    'righteous_routes'
+    'righteous_routes',
+    'high_tree_routes',
+    'tiger_knockdown_routes'
 ]
