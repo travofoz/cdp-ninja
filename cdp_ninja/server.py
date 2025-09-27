@@ -2350,37 +2350,35 @@ def verify_remote_installations(target_host, web_backend):
 
     print("🔍 Verifying remote installations...")
 
-    success = True
-    tools = {
-        'claude': '--version',
-        'tmux': '-V',
-        web_backend: '--version'
-    }
+    # Just check if tools exist in PATH - don't worry about version flags
+    tools = ['claude', 'tmux', web_backend]
 
-    for tool, version_flag in tools.items():
+    working_tools = []
+    failed_tools = []
+
+    for tool in tools:
         try:
+            # Use login shell to load user's PATH (nvm, etc.)
+            cmd = f'bash -l -c "which {tool}"'
             result = subprocess.run(
-                ['ssh', target_host, f'{tool} {version_flag}'],
+                ['ssh', target_host, cmd],
                 capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0:
                 print(f"✅ {tool} verification passed on remote")
+                working_tools.append(tool)
             else:
-                # Try alternative version flag
-                result = subprocess.run(
-                    ['ssh', target_host, f'{tool} -v'],
-                    capture_output=True, text=True, timeout=10
-                )
-                if result.returncode == 0:
-                    print(f"✅ {tool} verification passed on remote")
-                else:
-                    print(f"❌ {tool} verification failed on remote")
-                    success = False
+                print(f"❌ {tool} verification failed on remote")
+                failed_tools.append(tool)
         except Exception:
             print(f"❌ {tool} verification failed on remote")
-            success = False
+            failed_tools.append(tool)
 
-    return success
+    if failed_tools:
+        print(f"\n⚠️  Partially successful - {', '.join(working_tools)} installed; failed: {', '.join(failed_tools)}")
+        return False
+    else:
+        return True
 
 
 def install_web_backend_local(web_backend, platform_info):
