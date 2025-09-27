@@ -1072,8 +1072,12 @@ def handle_usage():
     return 0
 
 
-def handle_install_agents(target_path):
+def handle_install_agents(target_path, instruct_only=False):
     """Install agents locally or remotely with conflict resolution"""
+    if instruct_only:
+        show_install_agents_instructions(target_path)
+        return True
+
     print(f"🥷 Installing CDP Ninja agents to: {target_path}")
 
     try:
@@ -1081,11 +1085,13 @@ def handle_install_agents(target_path):
         if not agents_dir.exists():
             print(f"❌ Agents directory not found: {agents_dir}")
             print("💡 Expected location: /agents (relative to cdp_ninja package)")
+            show_install_agents_instructions(target_path)
             return False
 
         agent_files = list(agents_dir.glob("*.md"))
         if not agent_files:
             print(f"❌ No agent files found in: {agents_dir}")
+            show_install_agents_instructions(target_path)
             return False
 
         print(f"📁 Found {len(agent_files)} agent files")
@@ -1108,29 +1114,172 @@ def handle_install_agents(target_path):
             print("   2. Test with: Task(subagent_type='cdp-ninja-hidden-door', ...)")
         else:
             print("\n❌ Agent installation failed or no files were installed")
+            show_install_agents_instructions(target_path)
 
         return success
 
     except Exception as e:
         print(f"❌ Agent installation failed: {e}")
+        show_install_agents_instructions(target_path)
         return False
 
 
-def handle_install_deps(target_host, web_backend):
+def show_install_agents_instructions(target_path):
+    """Show manual instructions for installing agents"""
+    print("\n📖 Manual Agent Installation Instructions")
+    print("=" * 50)
+
+    agents_dir = Path(__file__).parent.parent / "agents"
+
+    if ':' in target_path:
+        # Remote installation instructions
+        host, remote_path = target_path.split(':', 1)
+        print(f"🌐 Remote Installation to {host}:{remote_path}")
+        print("\n1. Setup SSH key authentication:")
+        print(f"   ssh-keygen -t ed25519")
+        print(f"   ssh-copy-id {host}")
+        print(f"   ssh {host}  # Test connection")
+
+        print(f"\n2. Create remote directory:")
+        print(f"   ssh {host} 'mkdir -p {remote_path}'")
+
+        print(f"\n3. Copy agent files:")
+        print(f"   scp {agents_dir}/*.md {host}:{remote_path}/")
+
+        print(f"\n4. Verify installation:")
+        print(f"   ssh {host} 'ls -la {remote_path}/'")
+
+    else:
+        # Local installation instructions
+        print(f"💻 Local Installation to {target_path}")
+        print(f"\n1. Create target directory:")
+        print(f"   mkdir -p {target_path}")
+
+        print(f"\n2. Copy agent files:")
+        print(f"   cp {agents_dir}/*.md {target_path}/")
+
+        print(f"\n3. Verify installation:")
+        print(f"   ls -la {target_path}/")
+
+    print(f"\n📋 Agent Files to Install:")
+    if agents_dir.exists():
+        for agent_file in agents_dir.glob("*.md"):
+            print(f"   • {agent_file.name}")
+    else:
+        print(f"   ❌ Agents directory not found: {agents_dir}")
+
+    print(f"\n🧪 Testing:")
+    print(f"   Task(subagent_type='cdp-ninja-hidden-door', prompt='test')")
+
+
+def handle_install_deps(target_host, web_backend, instruct_only=False):
     """Install dependencies (Claude CLI, tmux, gotty/ttyd) on target system"""
+    if instruct_only:
+        show_install_deps_instructions(target_host, web_backend)
+        return True
+
     print(f"🛠️  Installing dependencies on: {target_host}")
     print(f"📺 Web backend: {web_backend}")
 
     if target_host == 'localhost':
         print("💻 Installing locally...")
-        install_deps_local(web_backend)
+        success = install_deps_local(web_backend)
     else:
         print(f"🌐 Installing remotely on {target_host}...")
-        install_deps_remote(target_host, web_backend)
+        success = install_deps_remote(target_host, web_backend)
+
+    if not success:
+        print("\n💡 Installation failed - showing manual instructions:")
+        show_install_deps_instructions(target_host, web_backend)
+
+    return success
 
 
-def handle_tunnel(target_host):
+def show_install_deps_instructions(target_host, web_backend):
+    """Show manual instructions for installing dependencies"""
+    print("\n📖 Manual Dependency Installation Instructions")
+    print("=" * 55)
+
+    if target_host == 'localhost':
+        print("💻 Local Installation")
+        print("\n1. Install Claude CLI:")
+        print("   pip3 install claude-cli")
+        print("   # OR")
+        print("   pip install claude-cli")
+
+        print("\n2. Install tmux:")
+        import platform as plt
+        if plt.system() == 'Darwin':
+            print("   brew install tmux")
+        else:
+            print("   # Ubuntu/Debian:")
+            print("   sudo apt-get update && sudo apt-get install -y tmux")
+            print("   # CentOS/RHEL/Fedora:")
+            print("   sudo dnf install tmux")
+            print("   # OR")
+            print("   sudo yum install tmux")
+            print("   # Arch Linux:")
+            print("   sudo pacman -S tmux")
+
+        print(f"\n3. Install {web_backend}:")
+        if web_backend == 'ttyd':
+            if plt.system() == 'Darwin':
+                print("   brew install ttyd")
+            else:
+                print("   # Ubuntu/Debian:")
+                print("   sudo apt-get install -y ttyd")
+                print("   # CentOS/RHEL/Fedora:")
+                print("   sudo dnf install ttyd")
+                print("   # Arch Linux:")
+                print("   sudo pacman -S ttyd")
+        else:  # gotty
+            if plt.system() == 'Darwin':
+                print("   brew install gotty")
+            else:
+                print("   # Download from GitHub:")
+                print("   wget https://github.com/yudai/gotty/releases/latest/download/gotty_linux_amd64.tar.gz")
+                print("   tar -xzf gotty_linux_amd64.tar.gz")
+                print("   sudo mv gotty /usr/local/bin/")
+                print("   sudo chmod +x /usr/local/bin/gotty")
+
+    else:
+        print(f"🌐 Remote Installation on {target_host}")
+        print("\n1. Setup SSH key authentication:")
+        print("   ssh-keygen -t ed25519")
+        print(f"   ssh-copy-id {target_host}")
+        print(f"   ssh {target_host}  # Test connection")
+
+        print("\n2. Install Claude CLI on remote:")
+        print(f"   ssh {target_host} 'pip3 install claude-cli'")
+
+        print("\n3. Install tmux on remote:")
+        print(f"   # Ubuntu/Debian:")
+        print(f"   ssh {target_host} 'sudo apt-get update && sudo apt-get install -y tmux'")
+        print(f"   # CentOS/RHEL/Fedora:")
+        print(f"   ssh {target_host} 'sudo dnf install -y tmux'")
+
+        print(f"\n4. Install {web_backend} on remote:")
+        if web_backend == 'ttyd':
+            print(f"   ssh {target_host} 'sudo apt-get install -y ttyd'")
+        else:  # gotty
+            print(f"   ssh {target_host} 'cd /tmp && \\")
+            print(f"   wget https://github.com/yudai/gotty/releases/latest/download/gotty_linux_amd64.tar.gz && \\")
+            print(f"   tar -xzf gotty_linux_amd64.tar.gz && \\")
+            print(f"   sudo mv gotty /usr/local/bin/ && \\")
+            print(f"   sudo chmod +x /usr/local/bin/gotty'")
+
+    print("\n🧪 Verification:")
+    print("   claude --version")
+    print("   tmux -V")
+    print(f"   {web_backend} --version")
+
+
+def handle_tunnel(target_host, instruct_only=False):
     """Setup SSH tunnels for remote access"""
+    if instruct_only:
+        show_tunnel_instructions(target_host)
+        return True
+
     print(f"🚇 Setting up SSH tunnel to: {target_host}")
 
     # Auto-detect required ports from bridge configuration
@@ -1138,15 +1287,119 @@ def handle_tunnel(target_host):
     bridge_port = 8888
     web_port = 8080
 
-    setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port)
+    success = setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port)
+
+    if not success:
+        print("\n💡 Tunnel setup failed - showing manual instructions:")
+        show_tunnel_instructions(target_host)
+
+    return success
 
 
-def handle_invoke_claude(target_host, web_backend):
+def handle_invoke_claude(target_host, web_backend, instruct_only=False):
     """Start Claude interface in tmux with web terminal"""
+    if instruct_only:
+        show_invoke_claude_instructions(target_host, web_backend)
+        return True
+
     print(f"🤖 Starting Claude interface on: {target_host}")
     print(f"📺 Web backend: {web_backend}")
 
-    start_remote_claude(target_host, web_backend)
+    success = start_remote_claude(target_host, web_backend)
+
+    if not success:
+        print("\n💡 Claude setup failed - showing manual instructions:")
+        show_invoke_claude_instructions(target_host, web_backend)
+
+    return success
+
+
+def show_tunnel_instructions(target_host):
+    """Show manual instructions for setting up SSH tunnels"""
+    print("\n📖 Manual SSH Tunnel Setup Instructions")
+    print("=" * 50)
+
+    print(f"🚇 SSH Tunnels to {target_host}")
+    print("\n1. Setup SSH key authentication:")
+    print("   ssh-keygen -t ed25519")
+    print(f"   ssh-copy-id {target_host}")
+    print(f"   ssh {target_host}  # Test connection")
+
+    print("\n2. Create SSH tunnels:")
+    print(f"   ssh -L 9222:localhost:9222 \\")
+    print(f"       -L 8888:localhost:8888 \\")
+    print(f"       -L 8080:localhost:8080 \\")
+    print(f"       {target_host} -N")
+
+    print("\n3. Alternative (background tunnel):")
+    print(f"   ssh -fN -L 9222:localhost:9222 \\")
+    print(f"            -L 8888:localhost:8888 \\")
+    print(f"            -L 8080:localhost:8080 \\")
+    print(f"            {target_host}")
+
+    print("\n4. Verify tunnels:")
+    print("   # In separate terminal:")
+    print("   curl http://localhost:8888/cdp/status")
+    print("   curl http://localhost:8080")
+
+    print("\n📋 Port Mapping:")
+    print("   • 9222 → Chrome DevTools Protocol")
+    print("   • 8888 → CDP Ninja Bridge API")
+    print("   • 8080 → Web Terminal (gotty/ttyd)")
+
+    print("\n🔧 Troubleshooting:")
+    print("   • Check if ports are already in use: netstat -tulpn | grep :8888")
+    print(f"   • Test direct SSH: ssh {target_host} 'echo test'")
+    print("   • Kill existing tunnels: pkill -f 'ssh.*-L.*9222'")
+
+
+def show_invoke_claude_instructions(target_host, web_backend):
+    """Show manual instructions for starting remote Claude interface"""
+    print("\n📖 Manual Claude Interface Setup Instructions")
+    print("=" * 55)
+
+    print(f"🤖 Remote Claude on {target_host} with {web_backend}")
+    print("\n1. Setup SSH key authentication:")
+    print("   ssh-keygen -t ed25519")
+    print(f"   ssh-copy-id {target_host}")
+
+    print("\n2. Install dependencies on remote:")
+    print(f"   ssh {target_host} 'pip3 install claude-cli'")
+    print(f"   ssh {target_host} 'sudo apt-get install -y tmux {web_backend}'")
+
+    print("\n3. Start Claude in tmux:")
+    print(f"   ssh {target_host} \"tmux new-session -d -s claude 'claude' || tmux attach -t claude\"")
+
+    print(f"\n4. Start web terminal:")
+    if web_backend == 'ttyd':
+        print(f"   ssh {target_host} \"ttyd -p 8080 \\")
+        print(f"       -t titleFixed='Claude CLI' \\")
+        print(f"       -t disableLeaveAlert=true \\")
+        print(f"       -W tmux attach -t claude\"")
+    else:  # gotty
+        print(f"   ssh {target_host} \"gotty -p 8080 \\")
+        print(f"       --permit-write \\")
+        print(f"       --reconnect \\")
+        print(f"       --reconnect-time 10 \\")
+        print(f"       --max-connection 5 \\")
+        print(f"       --title-format 'Claude CLI - {{.hostname}}' \\")
+        print(f"       tmux attach -t claude\"")
+
+    print("\n5. Setup local tunnel (in separate terminal):")
+    print(f"   ssh -L 8080:localhost:8080 {target_host} -N")
+
+    print("\n6. Access Claude interface:")
+    print("   Open browser: http://localhost:8080")
+
+    print("\n📋 Web Backend Differences:")
+    print("   • ttyd: Lighter, better terminal fidelity, single connection")
+    print("   • gotty: Reconnection support, multi-device, heavier")
+
+    print("\n🔧 Troubleshooting:")
+    print(f"   • Check Claude CLI: ssh {target_host} 'claude --version'")
+    print(f"   • Check tmux: ssh {target_host} 'tmux list-sessions'")
+    print(f"   • Check web terminal: ssh {target_host} 'curl localhost:8080'")
+    print("   • Kill stuck sessions: ssh {target_host} 'tmux kill-session -t claude'")
 
 
 def handle_shell():
@@ -1345,108 +1598,974 @@ def show_file_diff(source_file, target_file):
 
 
 def install_deps_local(web_backend):
-    """Install dependencies locally"""
+    """Install dependencies locally with comprehensive platform support"""
+    print("🔍 Detecting local platform...")
+
+    platform_info = detect_local_platform()
+    if not platform_info:
+        return False
+
+    print(f"🖥️  Platform: {platform_info['os']} ({platform_info['package_manager']})")
+
+    # Check existing dependencies
+    existing_deps = check_existing_dependencies()
+    print(f"📊 Found {len(existing_deps)} existing dependencies")
+
+    success = True
+
+    # Install Claude CLI
+    if 'claude' not in existing_deps:
+        success &= install_claude_cli_local(platform_info)
+    else:
+        print("✅ Claude CLI already installed")
+
+    # Install tmux
+    if 'tmux' not in existing_deps:
+        success &= install_tmux_local(platform_info)
+    else:
+        print("✅ tmux already installed")
+
+    # Install web backend
+    backend_name = web_backend
+    if backend_name not in existing_deps:
+        success &= install_web_backend_local(web_backend, platform_info)
+    else:
+        print(f"✅ {backend_name} already installed")
+
+    if success:
+        success &= verify_local_installations(web_backend)
+
+    if success:
+        print("\n🎉 All dependencies installed successfully!")
+        print("💡 Next steps:")
+        print("   1. Test Claude CLI: claude --version")
+        print("   2. Test tmux: tmux new-session -d 'echo test'")
+        print(f"   3. Test {web_backend}: {web_backend} --version")
+    else:
+        print("\n❌ Some dependencies failed to install")
+        print("💡 Check error messages above for manual installation guidance")
+
+    return success
+
+
+def detect_local_platform():
+    """Detect local platform and available package manager"""
+    import subprocess
+    import shutil
+
+    system = platform.system()
+
+    if system == 'Windows':
+        print("❌ Windows is not supported for dependency installation")
+        print("💡 Use WSL2 with Ubuntu for CDP Ninja development")
+        return None
+
+    elif system == 'Darwin':  # macOS
+        if shutil.which('brew'):
+            return {
+                'os': 'macOS',
+                'system': 'Darwin',
+                'package_manager': 'brew',
+                'sudo_required': False
+            }
+        else:
+            print("❌ Homebrew not found on macOS")
+            print("💡 Install Homebrew: /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
+            return None
+
+    elif system == 'Linux':
+        # Detect Linux distribution
+        distro_info = detect_linux_distro()
+        if not distro_info:
+            return None
+
+        # Find available package manager
+        if distro_info['family'] in ['ubuntu', 'debian'] and shutil.which('apt-get'):
+            return {
+                'os': f"Linux ({distro_info['name']})",
+                'system': 'Linux',
+                'distro_family': distro_info['family'],
+                'package_manager': 'apt-get',
+                'sudo_required': True
+            }
+        elif distro_info['family'] in ['centos', 'rhel', 'fedora']:
+            if shutil.which('dnf'):
+                return {
+                    'os': f"Linux ({distro_info['name']})",
+                    'system': 'Linux',
+                    'distro_family': distro_info['family'],
+                    'package_manager': 'dnf',
+                    'sudo_required': True
+                }
+            elif shutil.which('yum'):
+                return {
+                    'os': f"Linux ({distro_info['name']})",
+                    'system': 'Linux',
+                    'distro_family': distro_info['family'],
+                    'package_manager': 'yum',
+                    'sudo_required': True
+                }
+        elif distro_info['family'] == 'arch' and shutil.which('pacman'):
+            return {
+                'os': f"Linux ({distro_info['name']})",
+                'system': 'Linux',
+                'distro_family': distro_info['family'],
+                'package_manager': 'pacman',
+                'sudo_required': True
+            }
+
+        print(f"❌ Unsupported Linux distribution: {distro_info['name']}")
+        print("💡 Supported: Ubuntu, Debian, CentOS, RHEL, Fedora, Arch Linux")
+        return None
+
+    else:
+        print(f"❌ Unsupported operating system: {system}")
+        return None
+
+
+def detect_linux_distro():
+    """Detect Linux distribution from /etc/os-release"""
+    try:
+        with open('/etc/os-release', 'r') as f:
+            lines = f.readlines()
+
+        distro_info = {}
+        for line in lines:
+            if '=' in line:
+                key, value = line.strip().split('=', 1)
+                distro_info[key] = value.strip('"')
+
+        name = distro_info.get('NAME', '').lower()
+        id_like = distro_info.get('ID_LIKE', '').lower()
+        distro_id = distro_info.get('ID', '').lower()
+
+        # Determine distribution family
+        if 'ubuntu' in name or 'ubuntu' in id_like or distro_id == 'ubuntu':
+            family = 'ubuntu'
+        elif 'debian' in name or 'debian' in id_like or distro_id == 'debian':
+            family = 'debian'
+        elif 'centos' in name or 'centos' in id_like or distro_id == 'centos':
+            family = 'centos'
+        elif 'rhel' in name or 'red hat' in name or 'rhel' in id_like:
+            family = 'rhel'
+        elif 'fedora' in name or 'fedora' in id_like or distro_id == 'fedora':
+            family = 'fedora'
+        elif 'arch' in name or 'arch' in id_like or distro_id == 'arch':
+            family = 'arch'
+        else:
+            family = 'unknown'
+
+        return {
+            'name': distro_info.get('PRETTY_NAME', name),
+            'family': family,
+            'id': distro_id
+        }
+
+    except Exception as e:
+        print(f"❌ Could not detect Linux distribution: {e}")
+        return None
+
+
+def check_existing_dependencies():
+    """Check which dependencies are already installed"""
+    import shutil
+
+    existing = []
+
+    # Check Claude CLI
+    if shutil.which('claude'):
+        existing.append('claude')
+
+    # Check tmux
+    if shutil.which('tmux'):
+        existing.append('tmux')
+
+    # Check gotty
+    if shutil.which('gotty'):
+        existing.append('gotty')
+
+    # Check ttyd
+    if shutil.which('ttyd'):
+        existing.append('ttyd')
+
+    return existing
+
+
+def install_claude_cli_local(platform_info):
+    """Install Claude CLI locally"""
     import subprocess
 
+    print("📦 Installing Claude CLI...")
+
     try:
-        # Install Claude CLI
-        print("📦 Installing Claude CLI...")
-        subprocess.run(['pip', 'install', 'claude-cli'], check=True)
+        # Try pip install first
+        result = subprocess.run(['pip', 'install', 'claude-cli'],
+                              capture_output=True, text=True, timeout=120)
+        if result.returncode == 0:
+            print("✅ Claude CLI installed via pip")
+            return True
+        else:
+            print(f"❌ pip install failed: {result.stderr}")
 
-        # Install tmux (platform-specific)
-        if platform.system() == 'Darwin':
-            subprocess.run(['brew', 'install', 'tmux'], check=True)
-        elif platform.system() == 'Linux':
-            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'tmux'], check=True)
+        # Try pip3 as fallback
+        result = subprocess.run(['pip3', 'install', 'claude-cli'],
+                              capture_output=True, text=True, timeout=120)
+        if result.returncode == 0:
+            print("✅ Claude CLI installed via pip3")
+            return True
+        else:
+            print(f"❌ pip3 install failed: {result.stderr}")
 
-        # Install web backend
-        install_web_backend_local(web_backend)
+        print("💡 Manual installation:")
+        print("   pip3 install --user claude-cli")
+        return False
 
-        print("✅ Local dependencies installed successfully")
+    except subprocess.TimeoutExpired:
+        print("❌ Claude CLI installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ Claude CLI installation failed: {e}")
+        return False
 
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Installation failed: {e}")
+
+def install_tmux_local(platform_info):
+    """Install tmux locally"""
+    import subprocess
+
+    print("📦 Installing tmux...")
+
+    try:
+        if platform_info['package_manager'] == 'brew':
+            result = subprocess.run(['brew', 'install', 'tmux'],
+                                  capture_output=True, text=True, timeout=300)
+        elif platform_info['package_manager'] == 'apt-get':
+            result = subprocess.run(['sudo', 'apt-get', 'update'],
+                                  capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                result = subprocess.run(['sudo', 'apt-get', 'install', '-y', 'tmux'],
+                                      capture_output=True, text=True, timeout=300)
+        elif platform_info['package_manager'] in ['dnf', 'yum']:
+            result = subprocess.run(['sudo', platform_info['package_manager'], 'install', '-y', 'tmux'],
+                                  capture_output=True, text=True, timeout=300)
+        elif platform_info['package_manager'] == 'pacman':
+            result = subprocess.run(['sudo', 'pacman', '-S', '--noconfirm', 'tmux'],
+                                  capture_output=True, text=True, timeout=300)
+        else:
+            print(f"❌ Unsupported package manager: {platform_info['package_manager']}")
+            return False
+
+        if result.returncode == 0:
+            print("✅ tmux installed successfully")
+            return True
+        else:
+            print(f"❌ tmux installation failed: {result.stderr}")
+            print(f"💡 Manual installation: sudo {platform_info['package_manager']} install tmux")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ tmux installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ tmux installation failed: {e}")
+        return False
+
+
+def verify_local_installations(web_backend):
+    """Verify all dependencies are working"""
+    import subprocess
+    import shutil
+
+    print("🔍 Verifying installations...")
+
+    success = True
+
+    # Verify Claude CLI
+    if shutil.which('claude'):
+        try:
+            result = subprocess.run(['claude', '--version'],
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                print("✅ Claude CLI verification passed")
+            else:
+                print("❌ Claude CLI verification failed")
+                success = False
+        except Exception:
+            print("❌ Claude CLI verification failed")
+            success = False
+    else:
+        print("❌ Claude CLI not found in PATH")
+        success = False
+
+    # Verify tmux
+    if shutil.which('tmux'):
+        try:
+            result = subprocess.run(['tmux', '-V'],
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                print("✅ tmux verification passed")
+            else:
+                print("❌ tmux verification failed")
+                success = False
+        except Exception:
+            print("❌ tmux verification failed")
+            success = False
+    else:
+        print("❌ tmux not found in PATH")
+        success = False
+
+    # Verify web backend
+    if shutil.which(web_backend):
+        try:
+            result = subprocess.run([web_backend, '--version'],
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0:
+                print(f"✅ {web_backend} verification passed")
+            else:
+                # Some tools use different version flags
+                result = subprocess.run([web_backend, '-v'],
+                                      capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    print(f"✅ {web_backend} verification passed")
+                else:
+                    print(f"❌ {web_backend} verification failed")
+                    success = False
+        except Exception:
+            print(f"❌ {web_backend} verification failed")
+            success = False
+    else:
+        print(f"❌ {web_backend} not found in PATH")
+        success = False
+
+    return success
 
 
 def install_deps_remote(target_host, web_backend):
-    """Install dependencies on remote host"""
+    """Install dependencies on remote host (SSH key authentication required)"""
     import subprocess
+
+    print(f"🔑 Using SSH key authentication (passwords not supported)")
+    print(f"🖥️  Target host: {target_host}")
+
+    # Test SSH connection first
+    if not verify_ssh_access_remote(target_host):
+        return False
+
+    # Detect remote platform
+    platform_info = detect_remote_platform(target_host)
+    if not platform_info:
+        return False
+
+    print(f"🖥️  Remote platform: {platform_info['os']} ({platform_info['package_manager']})")
+
+    # Check existing dependencies on remote
+    existing_deps = check_remote_dependencies(target_host)
+    print(f"📊 Found {len(existing_deps)} existing dependencies on remote")
+
+    success = True
+
+    # Install Claude CLI
+    if 'claude' not in existing_deps:
+        success &= install_claude_cli_remote(target_host, platform_info)
+    else:
+        print("✅ Claude CLI already installed on remote")
+
+    # Install tmux
+    if 'tmux' not in existing_deps:
+        success &= install_tmux_remote(target_host, platform_info)
+    else:
+        print("✅ tmux already installed on remote")
+
+    # Install web backend
+    if web_backend not in existing_deps:
+        success &= install_web_backend_remote(target_host, web_backend, platform_info)
+    else:
+        print(f"✅ {web_backend} already installed on remote")
+
+    if success:
+        success &= verify_remote_installations(target_host, web_backend)
+
+    if success:
+        print(f"\n🎉 All dependencies installed successfully on {target_host}!")
+        print("💡 Next steps:")
+        print(f"   1. Test remote access: ssh {target_host}")
+        print("   2. Test Claude CLI: ssh {target_host} 'claude --version'")
+        print(f"   3. Test {web_backend}: ssh {target_host} '{web_backend} --version'")
+    else:
+        print(f"\n❌ Some dependencies failed to install on {target_host}")
+        print("💡 Check error messages above for manual installation guidance")
+
+    return success
+
+
+def verify_ssh_access_remote(target_host):
+    """Verify SSH key access to remote host"""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ['ssh', '-o', 'PasswordAuthentication=no', '-o', 'ConnectTimeout=10',
+             target_host, 'echo "SSH connection test"'],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode != 0:
+            print("❌ SSH key authentication failed")
+            print("🔧 Setup required:")
+            print(f"   1. Generate SSH key: ssh-keygen -t ed25519")
+            print(f"   2. Copy to remote: ssh-copy-id {target_host}")
+            print(f"   3. Test connection: ssh {target_host}")
+            return False
+
+        print("✅ SSH connection verified")
+        return True
+
+    except subprocess.TimeoutExpired:
+        print(f"❌ SSH connection timeout to {target_host}")
+        return False
+    except FileNotFoundError:
+        print("❌ SSH client not found")
+        return False
+
+
+def detect_remote_platform(target_host):
+    """Detect platform and package manager on remote host"""
+    import subprocess
+
+    try:
+        # Get OS information
+        result = subprocess.run(
+            ['ssh', target_host, 'cat /etc/os-release 2>/dev/null || echo "UNKNOWN"'],
+            capture_output=True, text=True, timeout=10
+        )
+
+        if result.returncode != 0 or 'UNKNOWN' in result.stdout:
+            print("❌ Could not detect remote OS")
+            return None
+
+        # Parse os-release
+        distro_info = {}
+        for line in result.stdout.split('\n'):
+            if '=' in line:
+                key, value = line.strip().split('=', 1)
+                distro_info[key] = value.strip('"')
+
+        name = distro_info.get('NAME', '').lower()
+        id_like = distro_info.get('ID_LIKE', '').lower()
+        distro_id = distro_info.get('ID', '').lower()
+
+        # Determine distribution family
+        if 'ubuntu' in name or 'ubuntu' in id_like or distro_id == 'ubuntu':
+            family = 'ubuntu'
+        elif 'debian' in name or 'debian' in id_like or distro_id == 'debian':
+            family = 'debian'
+        elif 'centos' in name or 'centos' in id_like or distro_id == 'centos':
+            family = 'centos'
+        elif 'rhel' in name or 'red hat' in name or 'rhel' in id_like:
+            family = 'rhel'
+        elif 'fedora' in name or 'fedora' in id_like or distro_id == 'fedora':
+            family = 'fedora'
+        elif 'arch' in name or 'arch' in id_like or distro_id == 'arch':
+            family = 'arch'
+        else:
+            family = 'unknown'
+
+        # Check available package managers
+        if family in ['ubuntu', 'debian']:
+            pkg_mgr_check = subprocess.run(
+                ['ssh', target_host, 'which apt-get'],
+                capture_output=True, text=True, timeout=10
+            )
+            if pkg_mgr_check.returncode == 0:
+                return {
+                    'os': f"Linux ({distro_info.get('PRETTY_NAME', name)})",
+                    'system': 'Linux',
+                    'distro_family': family,
+                    'package_manager': 'apt-get',
+                    'sudo_required': True
+                }
+
+        elif family in ['centos', 'rhel', 'fedora']:
+            # Check for dnf first, then yum
+            pkg_mgr_check = subprocess.run(
+                ['ssh', target_host, 'which dnf'],
+                capture_output=True, text=True, timeout=10
+            )
+            if pkg_mgr_check.returncode == 0:
+                return {
+                    'os': f"Linux ({distro_info.get('PRETTY_NAME', name)})",
+                    'system': 'Linux',
+                    'distro_family': family,
+                    'package_manager': 'dnf',
+                    'sudo_required': True
+                }
+            else:
+                pkg_mgr_check = subprocess.run(
+                    ['ssh', target_host, 'which yum'],
+                    capture_output=True, text=True, timeout=10
+                )
+                if pkg_mgr_check.returncode == 0:
+                    return {
+                        'os': f"Linux ({distro_info.get('PRETTY_NAME', name)})",
+                        'system': 'Linux',
+                        'distro_family': family,
+                        'package_manager': 'yum',
+                        'sudo_required': True
+                    }
+
+        elif family == 'arch':
+            pkg_mgr_check = subprocess.run(
+                ['ssh', target_host, 'which pacman'],
+                capture_output=True, text=True, timeout=10
+            )
+            if pkg_mgr_check.returncode == 0:
+                return {
+                    'os': f"Linux ({distro_info.get('PRETTY_NAME', name)})",
+                    'system': 'Linux',
+                    'distro_family': family,
+                    'package_manager': 'pacman',
+                    'sudo_required': True
+                }
+
+        print(f"❌ Unsupported remote Linux distribution: {distro_info.get('PRETTY_NAME', name)}")
+        print("💡 Supported: Ubuntu, Debian, CentOS, RHEL, Fedora, Arch Linux")
+        return None
+
+    except Exception as e:
+        print(f"❌ Failed to detect remote platform: {e}")
+        return None
+
+
+def check_remote_dependencies(target_host):
+    """Check which dependencies are already installed on remote host"""
+    import subprocess
+
+    existing = []
+    tools = ['claude', 'tmux', 'gotty', 'ttyd']
+
+    for tool in tools:
+        try:
+            result = subprocess.run(
+                ['ssh', target_host, f'which {tool}'],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                existing.append(tool)
+        except Exception:
+            pass  # Tool not found, which is expected
+
+    return existing
+
+
+def install_claude_cli_remote(target_host, platform_info):
+    """Install Claude CLI on remote host"""
+    import subprocess
+
+    print("📦 Installing Claude CLI on remote...")
 
     commands = [
         'pip install claude-cli',
-        'sudo apt-get update && sudo apt-get install -y tmux',
+        'pip3 install claude-cli'
     ]
-
-    if web_backend == 'gotty':
-        commands.append('wget -O /tmp/gotty.tar.gz https://github.com/yudai/gotty/releases/latest/download/gotty_linux_amd64.tar.gz && tar -xzf /tmp/gotty.tar.gz -C /usr/local/bin/')
-    else:  # ttyd
-        commands.append('sudo apt-get install -y ttyd')
 
     for cmd in commands:
         try:
-            subprocess.run(['ssh', target_host, cmd], check=True)
-            print(f"✅ Executed: {cmd}")
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Failed: {cmd} - {e}")
+            result = subprocess.run(
+                ['ssh', target_host, cmd],
+                capture_output=True, text=True, timeout=120
+            )
+            if result.returncode == 0:
+                print("✅ Claude CLI installed on remote")
+                return True
+            else:
+                print(f"❌ {cmd} failed: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            print(f"❌ {cmd} timed out")
+        except Exception as e:
+            print(f"❌ {cmd} failed: {e}")
+
+    print("💡 Manual installation on remote:")
+    print(f"   ssh {target_host} 'pip3 install --user claude-cli'")
+    return False
 
 
-def install_web_backend_local(web_backend):
-    """Install web backend locally"""
+def install_tmux_remote(target_host, platform_info):
+    """Install tmux on remote host"""
     import subprocess
 
-    if web_backend == 'gotty':
-        print("📺 Installing gotty...")
-        # Platform-specific gotty installation
-        if platform.system() == 'Darwin':
-            subprocess.run(['brew', 'install', 'gotty'], check=True)
+    print("📦 Installing tmux on remote...")
+
+    try:
+        if platform_info['package_manager'] == 'apt-get':
+            cmd = 'sudo apt-get update && sudo apt-get install -y tmux'
+        elif platform_info['package_manager'] in ['dnf', 'yum']:
+            cmd = f"sudo {platform_info['package_manager']} install -y tmux"
+        elif platform_info['package_manager'] == 'pacman':
+            cmd = 'sudo pacman -S --noconfirm tmux'
         else:
-            print("⚠️  Manual gotty installation required on this platform")
-    else:  # ttyd
-        print("📺 Installing ttyd...")
-        if platform.system() == 'Darwin':
-            subprocess.run(['brew', 'install', 'ttyd'], check=True)
-        elif platform.system() == 'Linux':
-            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'ttyd'], check=True)
+            print(f"❌ Unsupported remote package manager: {platform_info['package_manager']}")
+            return False
+
+        result = subprocess.run(
+            ['ssh', target_host, cmd],
+            capture_output=True, text=True, timeout=300
+        )
+
+        if result.returncode == 0:
+            print("✅ tmux installed on remote")
+            return True
+        else:
+            print(f"❌ tmux installation failed: {result.stderr}")
+            print(f"💡 Manual installation: ssh {target_host} '{cmd}'")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ tmux installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ tmux installation failed: {e}")
+        return False
+
+
+def install_web_backend_remote(target_host, web_backend, platform_info):
+    """Install web backend on remote host"""
+    import subprocess
+
+    print(f"📺 Installing {web_backend} on remote...")
+
+    try:
+        if web_backend == 'ttyd':
+            if platform_info['package_manager'] == 'apt-get':
+                cmd = 'sudo apt-get install -y ttyd'
+            elif platform_info['package_manager'] in ['dnf', 'yum']:
+                cmd = f"sudo {platform_info['package_manager']} install -y ttyd"
+            elif platform_info['package_manager'] == 'pacman':
+                cmd = 'sudo pacman -S --noconfirm ttyd'
+            else:
+                print(f"❌ Unsupported package manager for ttyd: {platform_info['package_manager']}")
+                return False
+
+        elif web_backend == 'gotty':
+            # Install gotty from GitHub releases
+            arch_cmd = 'uname -m'
+            result = subprocess.run(
+                ['ssh', target_host, arch_cmd],
+                capture_output=True, text=True, timeout=10
+            )
+
+            if 'x86_64' in result.stdout or 'amd64' in result.stdout:
+                arch = 'amd64'
+            elif 'aarch64' in result.stdout or 'arm64' in result.stdout:
+                arch = 'arm64'
+            else:
+                print(f"❌ Unsupported remote architecture for gotty")
+                return False
+
+            cmd = f"""
+            cd /tmp && \
+            wget -O gotty_linux_{arch}.tar.gz https://github.com/yudai/gotty/releases/latest/download/gotty_linux_{arch}.tar.gz && \
+            tar -xzf gotty_linux_{arch}.tar.gz && \
+            sudo mv gotty /usr/local/bin/ && \
+            sudo chmod +x /usr/local/bin/gotty && \
+            rm gotty_linux_{arch}.tar.gz
+            """
+        else:
+            print(f"❌ Unsupported web backend: {web_backend}")
+            return False
+
+        result = subprocess.run(
+            ['ssh', target_host, cmd],
+            capture_output=True, text=True, timeout=300
+        )
+
+        if result.returncode == 0:
+            print(f"✅ {web_backend} installed on remote")
+            return True
+        else:
+            print(f"❌ {web_backend} installation failed: {result.stderr}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"❌ {web_backend} installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ {web_backend} installation failed: {e}")
+        return False
+
+
+def verify_remote_installations(target_host, web_backend):
+    """Verify all dependencies are working on remote host"""
+    import subprocess
+
+    print("🔍 Verifying remote installations...")
+
+    success = True
+    tools = {
+        'claude': '--version',
+        'tmux': '-V',
+        web_backend: '--version'
+    }
+
+    for tool, version_flag in tools.items():
+        try:
+            result = subprocess.run(
+                ['ssh', target_host, f'{tool} {version_flag}'],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                print(f"✅ {tool} verification passed on remote")
+            else:
+                # Try alternative version flag
+                result = subprocess.run(
+                    ['ssh', target_host, f'{tool} -v'],
+                    capture_output=True, text=True, timeout=10
+                )
+                if result.returncode == 0:
+                    print(f"✅ {tool} verification passed on remote")
+                else:
+                    print(f"❌ {tool} verification failed on remote")
+                    success = False
+        except Exception:
+            print(f"❌ {tool} verification failed on remote")
+            success = False
+
+    return success
+
+
+def install_web_backend_local(web_backend, platform_info):
+    """Install web backend locally with proper platform support"""
+    import subprocess
+    import urllib.request
+    import json
+    import tarfile
+    import zipfile
+    from pathlib import Path
+
+    print(f"📺 Installing {web_backend}...")
+
+    if web_backend == 'gotty':
+        return install_gotty_local(platform_info)
+    elif web_backend == 'ttyd':
+        return install_ttyd_local(platform_info)
+    else:
+        print(f"❌ Unsupported web backend: {web_backend}")
+        return False
+
+
+def install_gotty_local(platform_info):
+    """Install gotty locally"""
+    import subprocess
+    import urllib.request
+    import json
+    import tarfile
+    from pathlib import Path
+
+    try:
+        if platform_info['package_manager'] == 'brew':
+            # Use Homebrew on macOS
+            result = subprocess.run(['brew', 'install', 'gotty'],
+                                  capture_output=True, text=True, timeout=300)
+            if result.returncode == 0:
+                print("✅ gotty installed via Homebrew")
+                return True
+            else:
+                print(f"❌ Homebrew gotty installation failed: {result.stderr}")
+
+        # Fallback to binary installation for all platforms
+        print("📦 Installing gotty from GitHub releases...")
+
+        # Detect architecture
+        import platform as plt
+        machine = plt.machine().lower()
+        if machine in ['x86_64', 'amd64']:
+            arch = 'amd64'
+        elif machine in ['aarch64', 'arm64']:
+            arch = 'arm64'
+        else:
+            print(f"❌ Unsupported architecture: {machine}")
+            return False
+
+        # Determine platform
+        if platform_info['system'] == 'Darwin':
+            platform_name = 'darwin'
+        elif platform_info['system'] == 'Linux':
+            platform_name = 'linux'
+        else:
+            print(f"❌ Unsupported platform for gotty: {platform_info['system']}")
+            return False
+
+        # Get latest release info
+        api_url = "https://api.github.com/repos/yudai/gotty/releases/latest"
+        with urllib.request.urlopen(api_url, timeout=30) as response:
+            release_info = json.loads(response.read())
+
+        # Find the correct asset
+        download_url = None
+        for asset in release_info['assets']:
+            if f'{platform_name}_{arch}' in asset['name']:
+                download_url = asset['browser_download_url']
+                break
+
+        if not download_url:
+            print(f"❌ No gotty binary found for {platform_name}_{arch}")
+            return False
+
+        # Download and install
+        print(f"📥 Downloading {download_url}")
+        temp_file = f"/tmp/gotty_{platform_name}_{arch}.tar.gz"
+
+        with urllib.request.urlopen(download_url, timeout=300) as response:
+            with open(temp_file, 'wb') as f:
+                f.write(response.read())
+
+        # Extract and install
+        with tarfile.open(temp_file, 'r:gz') as tar:
+            # Find the gotty binary in the archive
+            for member in tar.getmembers():
+                if member.name.endswith('gotty') or member.name == 'gotty':
+                    # Extract to /usr/local/bin/
+                    member.name = 'gotty'
+                    tar.extract(member, '/tmp/')
+
+                    # Move to final location
+                    if platform_info.get('sudo_required', True):
+                        result = subprocess.run(['sudo', 'mv', '/tmp/gotty', '/usr/local/bin/gotty'],
+                                              capture_output=True, text=True, timeout=30)
+                        subprocess.run(['sudo', 'chmod', '+x', '/usr/local/bin/gotty'],
+                                     capture_output=True, text=True, timeout=30)
+                    else:
+                        result = subprocess.run(['mv', '/tmp/gotty', '/usr/local/bin/gotty'],
+                                              capture_output=True, text=True, timeout=30)
+                        subprocess.run(['chmod', '+x', '/usr/local/bin/gotty'],
+                                     capture_output=True, text=True, timeout=30)
+
+                    if result.returncode == 0:
+                        print("✅ gotty installed successfully")
+                        return True
+                    else:
+                        print(f"❌ Failed to install gotty: {result.stderr}")
+                        return False
+
+        print("❌ gotty binary not found in archive")
+        return False
+
+    except Exception as e:
+        print(f"❌ gotty installation failed: {e}")
+        print("💡 Manual installation:")
+        print("   Visit: https://github.com/yudai/gotty/releases")
+        return False
+
+
+def install_ttyd_local(platform_info):
+    """Install ttyd locally"""
+    import subprocess
+
+    try:
+        if platform_info['package_manager'] == 'brew':
+            result = subprocess.run(['brew', 'install', 'ttyd'],
+                                  capture_output=True, text=True, timeout=300)
+        elif platform_info['package_manager'] == 'apt-get':
+            result = subprocess.run(['sudo', 'apt-get', 'update'],
+                                  capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                result = subprocess.run(['sudo', 'apt-get', 'install', '-y', 'ttyd'],
+                                      capture_output=True, text=True, timeout=300)
+        elif platform_info['package_manager'] in ['dnf', 'yum']:
+            result = subprocess.run(['sudo', platform_info['package_manager'], 'install', '-y', 'ttyd'],
+                                  capture_output=True, text=True, timeout=300)
+        elif platform_info['package_manager'] == 'pacman':
+            result = subprocess.run(['sudo', 'pacman', '-S', '--noconfirm', 'ttyd'],
+                                  capture_output=True, text=True, timeout=300)
+        else:
+            print(f"❌ Unsupported package manager for ttyd: {platform_info['package_manager']}")
+            return False
+
+        if result.returncode == 0:
+            print("✅ ttyd installed successfully")
+            return True
+        else:
+            print(f"❌ ttyd installation failed: {result.stderr}")
+            print(f"💡 Manual installation: sudo {platform_info['package_manager']} install ttyd")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ ttyd installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ ttyd installation failed: {e}")
+        return False
 
 
 def setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port):
     """Setup SSH tunnels for remote access"""
-    import subprocess
-
-    tunnels = [
-        f'{cdp_port}:localhost:{cdp_port}',
-        f'{bridge_port}:localhost:{bridge_port}',
-        f'{web_port}:localhost:{web_port}'
-    ]
-
-    cmd = ['ssh', '-L'] + ['-L'.join(tunnels)] + [target_host, '-N']
-
-    print(f"🚇 Tunnel command: {' '.join(cmd)}")
+    print("🚇 SSH tunnel setup instructions:")
     print("⚠️  Run this command in a separate terminal:")
-    print(f"ssh -L {':'.join(tunnels)} {target_host} -N")
+    print(f"ssh -L {cdp_port}:localhost:{cdp_port} \\")
+    print(f"    -L {bridge_port}:localhost:{bridge_port} \\")
+    print(f"    -L {web_port}:localhost:{web_port} \\")
+    print(f"    {target_host} -N")
+
+    print("\n💡 Verification:")
+    print("   # In another terminal:")
+    print(f"   curl http://localhost:{bridge_port}/cdp/status")
+
+    # For now, this is instructional only - return True
+    return True
 
 
 def start_remote_claude(target_host, web_backend):
     """Start Claude interface on remote host with web terminal"""
     import subprocess
 
+    print(f"🔑 Testing SSH access to {target_host}...")
+
+    # Test SSH access first
+    try:
+        result = subprocess.run(
+            ['ssh', '-o', 'PasswordAuthentication=no', '-o', 'ConnectTimeout=10',
+             target_host, 'echo "SSH test"'],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode != 0:
+            print("❌ SSH key authentication failed")
+            return False
+    except Exception as e:
+        print(f"❌ SSH connection failed: {e}")
+        return False
+
+    print("✅ SSH access verified")
+
     if web_backend == 'ttyd':
         remote_cmd = '''
         tmux new-session -d -s claude 'claude' 2>/dev/null || true;
-        ttyd -p 8080 -t titleFixed='Claude CLI' -t disableLeaveAlert=true -W tmux attach -t claude
+        ttyd -p 8080 -t titleFixed='Claude CLI' -t disableLeaveAlert=true -W tmux attach -t claude &
+        echo "Claude interface starting..."
         '''
     else:  # gotty
         remote_cmd = '''
         tmux new-session -d -s claude 'claude' 2>/dev/null || true;
-        gotty -p 8080 --permit-write --reconnect --reconnect-time 10 --max-connection 5 --title-format 'Claude CLI - {{.hostname}}' tmux attach -t claude
+        gotty -p 8080 --permit-write --reconnect --reconnect-time 10 --max-connection 5 --title-format 'Claude CLI - {{.hostname}}' tmux attach -t claude &
+        echo "Claude interface starting..."
         '''
 
     try:
-        subprocess.run(['ssh', target_host, remote_cmd], check=True)
-        print(f"✅ Claude interface started on {target_host}:8080")
-        print(f"🌐 Access via: http://{target_host}:8080")
+        result = subprocess.run(
+            ['ssh', target_host, remote_cmd],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode == 0:
+            print(f"✅ Claude interface started on {target_host}:8080")
+            print(f"🌐 Access via: http://{target_host}:8080")
+            print("\n💡 Setup tunnel in separate terminal:")
+            print(f"   ssh -L 8080:localhost:8080 {target_host} -N")
+            return True
+        else:
+            print(f"❌ Failed to start Claude interface: {result.stderr}")
+            return False
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed to start Claude interface: {e}")
+        return False
+    except subprocess.TimeoutExpired:
+        print("❌ Claude interface startup timed out")
+        return False
 
 
 def main():
@@ -1481,6 +2600,8 @@ def main():
                        help='Start Claude interface in tmux with web terminal')
     parser.add_argument('--shell', action='store_true',
                        help='Enable shell execution capabilities')
+    parser.add_argument('--instruct-only', action='store_true',
+                       help='Show manual instructions instead of executing deployment actions')
 
     args = parser.parse_args()
 
@@ -1490,19 +2611,19 @@ def main():
         sys.exit(0)
 
     if args.install_agents:
-        handle_install_agents(args.install_agents)
+        handle_install_agents(args.install_agents, args.instruct_only)
         sys.exit(0)
 
     if args.install_deps:
-        handle_install_deps(args.install_deps, args.web_backend)
+        handle_install_deps(args.install_deps, args.web_backend, args.instruct_only)
         sys.exit(0)
 
     if args.tunnel:
-        handle_tunnel(args.tunnel)
+        handle_tunnel(args.tunnel, args.instruct_only)
         sys.exit(0)
 
     if args.invoke_claude:
-        handle_invoke_claude(args.invoke_claude, args.web_backend)
+        handle_invoke_claude(args.invoke_claude, args.web_backend, args.instruct_only)
         sys.exit(0)
 
     if args.shell:
