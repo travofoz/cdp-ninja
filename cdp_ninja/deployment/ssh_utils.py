@@ -68,21 +68,39 @@ def setup_ssh_tunnel(target_host, bridge_port=8888, instruct_only=False):
     try:
         # Create reverse SSH tunnel (Windows laptop → VPS)
         tunnel_cmd = [
-            'ssh', '-fN',
+            'ssh', '-N',  # Remove -f flag for better Windows compatibility
             '-R', f'{bridge_port}:localhost:{bridge_port}',
             target_host
         ]
 
         print(f"🚇 Executing: {' '.join(tunnel_cmd)}")
-        result = subprocess.run(tunnel_cmd, capture_output=True, text=True, timeout=30)
 
-        if result.returncode == 0:
+        # Use Popen for background process instead of run()
+        process = subprocess.Popen(
+            tunnel_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Give it a moment to establish or fail
+        import time
+        time.sleep(3)
+
+        # Check if process is still running (good sign)
+        if process.poll() is None:
+            # Process is still running = tunnel likely established
+            result_code = 0
+            stderr_output = ""
+        else:
+            # Process exited = tunnel failed
+            result_code = process.returncode
+            _, stderr_output = process.communicate()
+
+        if result_code == 0:
             print(f"✅ Reverse SSH tunnel established!")
             print(f"   • localhost:{bridge_port} → {target_host}:localhost:{bridge_port}")
-
-            # Wait a moment for tunnel to establish
-            import time
-            time.sleep(2)
+            print(f"   • Process PID: {process.pid}")
 
             print(f"\n🧪 Testing tunnel from {target_host}...")
             # Test tunnel by attempting connection from remote side
@@ -95,17 +113,21 @@ def setup_ssh_tunnel(target_host, bridge_port=8888, instruct_only=False):
                 test_result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
                 if test_result.returncode == 0 and 'ok' in test_result.stdout.lower():
                     print("✅ Tunnel verification successful - CDP Ninja accessible from remote!")
+                    print(f"\n💡 Tunnel is running in background (PID {process.pid})")
+                    print(f"💡 Kill with: taskkill /F /PID {process.pid}")
                     return True
                 else:
                     print("⚠️  Tunnel created but remote access test failed")
                     print(f"   Test output: {test_result.stdout}")
+                    print(f"\n💡 Tunnel is running in background (PID {process.pid})")
                     return True  # Tunnel exists, but service might not be ready
             except Exception as e:
                 print(f"⚠️  Tunnel created but verification failed: {e}")
+                print(f"\n💡 Tunnel is running in background (PID {process.pid})")
                 return True  # Tunnel exists, verification failed
 
         else:
-            print(f"❌ Failed to create tunnel: {result.stderr}")
+            print(f"❌ Failed to create tunnel: {stderr_output}")
             show_tunnel_instructions(target_host, bridge_port)
             return False
 
