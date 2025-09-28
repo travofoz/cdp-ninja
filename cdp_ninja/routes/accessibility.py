@@ -24,7 +24,7 @@ def accessibility_audit():
     """
     Comprehensive WCAG compliance audit with detailed violations and recommendations
 
-    @GET/POST /cdp/accessibility/audit
+    @route GET/POST /cdp/accessibility/audit
     @param {string} [wcag_level=AA] - WCAG compliance level (A, AA, AAA)
     @param {boolean} [detailed=true] - Include detailed violation descriptions
     @returns {object} Complete accessibility audit with WCAG violations, compliance score, and remediation guidance
@@ -334,7 +334,7 @@ def keyboard_navigation():
     """
     Test keyboard navigation and focus management
 
-    @GET/POST /cdp/accessibility/keyboard
+    @route GET/POST /cdp/accessibility/keyboard
     @param {boolean} [tab_order=true] - Test tab order sequence
     @param {boolean} [focus_visible=true] - Check focus indicators
     @returns {object} Keyboard navigation analysis with tab order, focus traps, and accessibility issues
@@ -553,7 +553,7 @@ def contrast_analysis():
     """
     Analyze color contrast ratios for WCAG compliance
 
-    @GET/POST /cdp/accessibility/contrast
+    @route GET/POST /cdp/accessibility/contrast
     @param {boolean} [ratio_check=true] - Calculate contrast ratios
     @param {string} [minimum=AA] - Minimum WCAG level (AA or AAA)
     @returns {object} Color contrast analysis with WCAG compliance and failing elements
@@ -767,7 +767,7 @@ def screen_reader_simulation():
     """
     Simulate screen reader experience and accessibility tree analysis
 
-    @GET/POST /cdp/accessibility/screen_reader
+    @route GET/POST /cdp/accessibility/screen_reader
     @param {boolean} [simulate=true] - Simulate screen reader navigation
     @param {boolean} [verbose=true] - Include detailed accessibility tree
     @returns {object} Screen reader simulation with accessible text flow and navigation landmarks
@@ -1053,7 +1053,7 @@ def form_accessibility_analysis():
     """
     Analyze form accessibility including labels, validation, and error handling
 
-    @POST /cdp/accessibility/form_analysis
+    @route POST /cdp/accessibility/form_analysis
     @body {string} [selector=form] - CSS selector for forms to analyze
     @body {boolean} [validation=true] - Check validation accessibility
     @body {boolean} [labels=true] - Analyze label associations
@@ -1378,7 +1378,7 @@ def landmark_navigation_analysis():
     """
     Analyze page landmarks and semantic structure for navigation
 
-    @POST /cdp/accessibility/landmarks
+    @route POST /cdp/accessibility/landmarks
     @body {boolean} [semantic_structure=true] - Analyze semantic HTML structure
     @body {boolean} [navigation=true] - Check navigation landmarks
     @returns {object} Landmark analysis with semantic structure, navigation flow, and accessibility improvements
@@ -1681,7 +1681,7 @@ def user_flow_analysis():
     """
     Analyze user experience flow and conversion optimization
 
-    @GET/POST /cdp/ux/flow_analysis
+    @route GET/POST /cdp/ux/flow_analysis
     @param {boolean} [entry_points=true] - Analyze page entry points
     @param {boolean} [conversions=true] - Check conversion elements
     @returns {object} UX flow analysis with entry points, conversion paths, and user experience optimization recommendations
@@ -1967,7 +1967,7 @@ def responsive_design_analysis():
     """
     Analyze responsive design and mobile user experience
 
-    @GET/POST /cdp/ux/responsive
+    @route GET/POST /cdp/ux/responsive
     @param {boolean} [breakpoints=true] - Test different viewport breakpoints
     @param {boolean} [touch_friendly=true] - Check touch-friendly design
     @returns {object} Responsive design analysis with breakpoint testing, touch target analysis, and mobile UX recommendations

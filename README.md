@@ -76,7 +76,7 @@ CDP Ninja includes 9 specialized Claude Code debugging agents:
 
 ## Documentation
 
-**📚 Auto-Generated from JSDoc Comments (65+ Endpoints)**
+**📚 Auto-Generated from JSDoc Comments (89 Endpoints)**
 
 | Section | Description | Endpoints |
 |---------|-------------|-----------|
@@ -85,11 +85,13 @@ CDP Ninja includes 9 specialized Claude Code debugging agents:
 | **[Browser Interaction](docs/usage/browser.md)** | Click, type, scroll, screenshots | 6 endpoints |
 | **[Performance](docs/usage/performance.md)** | Memory analysis, profiling, Core Web Vitals | 10 endpoints |
 | **[Network Monitoring](docs/usage/network_intelligence.md)** | Request analysis, blocking, throttling | 4 endpoints |
-| **[Security Testing](docs/usage/security.md)** | XSS, SQLi, fuzzing examples | Manual examples |
+| **[Security Testing](docs/usage/security.md)** | Vulnerability scanning, penetration testing | 8 endpoints |
+| **[Accessibility](docs/usage/accessibility.md)** | WCAG compliance, screen reader testing | 8 endpoints |
 | **[DOM Operations](docs/usage/dom.md)** | Element queries, manipulation | 6 endpoints |
 | **[Advanced DOM](docs/usage/dom_advanced.md)** | Shadow DOM, complex queries | 5 endpoints |
 | **[Page Navigation](docs/usage/navigation.md)** | Navigation, viewport, cookies | 9 endpoints |
 | **[Stress Testing](docs/usage/stress_testing.md)** | Memory bombs, CPU burn | 2 endpoints |
+| **[Advanced Stress Testing](docs/usage/stress_testing_advanced.md)** | Chaos monkey, race conditions, full assault | 8 endpoints |
 | **[Error Handling](docs/usage/error_handling.md)** | Exception testing, recovery | 8 endpoints |
 | **[Debugging](docs/usage/debugging.md)** | Advanced debugging workflows | 9 endpoints |
 | **[JavaScript](docs/usage/js_debugging.md)** | Code execution, async debugging | 2 endpoints |

@@ -24,7 +24,7 @@ def click_storm():
     """
     Aggressive rapid clicking to test event handling limits
 
-    @POST /cdp/stress/click_storm
+    @route POST /cdp/stress/click_storm
     @body {string} target - CSS selector for click target
     @body {number} [count=100] - Number of clicks to perform
     @body {number} [interval=10] - Milliseconds between clicks
@@ -201,7 +201,7 @@ def memory_bomb():
     """
     Aggressive memory allocation to test memory limits
 
-    @POST /cdp/stress/memory_bomb
+    @route POST /cdp/stress/memory_bomb
     @body {number} [size_mb=100] - Memory to allocate in MB
     @body {string} [allocate_rate=fast] - Allocation speed (slow, medium, fast)
     @body {boolean} [monitor=true] - Monitor memory usage during test
@@ -440,7 +440,7 @@ def cpu_burn():
     """
     Intensive CPU computation to test performance limits
 
-    @POST /cdp/stress/cpu_burn
+    @route POST /cdp/stress/cpu_burn
     @body {number} [duration=5000] - Test duration in milliseconds
     @body {string} [intensity=high] - CPU intensity (low, medium, high)
     @body {boolean} [block_main_thread=true] - Whether to block main thread
@@ -678,7 +678,7 @@ def input_overflow():
     """
     Test input field limits with oversized payloads
 
-    @POST /cdp/stress/input_overflow
+    @route POST /cdp/stress/input_overflow
     @body {string} selector - CSS selector for input fields
     @body {number} [payload_size=10000] - Size of input payload in characters
     @body {boolean} [special_chars=true] - Include special characters
@@ -918,7 +918,7 @@ def storage_flood():
     """
     Test browser storage limits with data flooding
 
-    @POST /cdp/stress/storage_flood
+    @route POST /cdp/stress/storage_flood
     @body {string} [type=localStorage] - Storage type (localStorage, sessionStorage, indexedDB)
     @body {boolean} [fill_to_limit=true] - Fill until storage limit reached
     @body {boolean} [oversized_values=true] - Use oversized values to test limits
@@ -1202,7 +1202,7 @@ def chaos_monkey():
     """
     Random unpredictable interactions to test system resilience
 
-    @POST /cdp/stress/chaos_monkey
+    @route POST /cdp/stress/chaos_monkey
     @body {number} [duration=30000] - Chaos duration in milliseconds
     @body {boolean} [random_clicks=true] - Perform random clicking
     @body {boolean} [random_inputs=true] - Fill inputs with random data
@@ -1585,7 +1585,7 @@ def race_conditions():
     """
     Trigger race conditions through concurrent operations
 
-    @POST /cdp/stress/race_conditions
+    @route POST /cdp/stress/race_conditions
     @body {boolean} [async_operations=true] - Test async operation races
     @body {boolean} [timing_attacks=true] - Perform timing-based attacks
     @body {boolean} [concurrent_mutations=true] - Test concurrent DOM mutations
@@ -1991,7 +1991,7 @@ def full_assault():
     """
     Comprehensive multi-vector stress test combining all attack patterns
 
-    @POST /cdp/stress/full_assault
+    @route POST /cdp/stress/full_assault
     @body {boolean} [memory=true] - Include memory stress testing
     @body {boolean} [cpu=true] - Include CPU intensive operations
     @body {boolean} [network=true] - Include network stress testing

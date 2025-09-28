@@ -1,124 +1,116 @@
-# Security Testing Domain API
+# Security Testing API
 
-Security testing examples and attack patterns for responsible testing.
+*Auto-generated from security.py JSDoc comments*
 
-## XSS Testing
+## GET/POST /cdp/security/vulnerabilities
 
-### Basic XSS Payloads
-```bash
-# Test form XSS
-curl -X POST http://localhost:8888/cdp/type \
-  -d '{"text": "<script>alert(1)</script>", "selector": "#search"}'
+**Function:** `security_vulnerabilities()`
 
-# Test attribute injection
-curl -X POST http://localhost:8888/cdp/type \
-  -d '{"text": "\" onmouseover=\"alert(1)", "selector": "#name"}'
+Scan for common web vulnerabilities using Security domain
 
-# Test JavaScript execution context
-curl -X POST http://localhost:8888/cdp/execute \
-  -d '{"code": "document.body.innerHTML = \"<img src=x onerror=alert(1)>\""}'
-```
+**Parameters:**
+- `target_url` *(string)* *(optional)*: Specific URL to analyze
+- `include_recommendations=true` *(boolean)* *(optional)*: Include fix recommendations
 
-## SQL Injection Testing
+**Returns:** {object} Vulnerability assessment report with findings and severity levels
 
-### Basic SQLi Payloads
-```bash
-# Test single quote
-curl -X POST http://localhost:8888/cdp/type \
-  -d "{\"text\": \"' OR 1=1--\", \"selector\": \"#user_id\"}"
+---
 
-# Test union injection
-curl -X POST http://localhost:8888/cdp/type \
-  -d "{\"text\": \"1 UNION SELECT password FROM users--\", \"selector\": \"#search\"}"
-```
+## GET/POST /cdp/security/authentication
 
-## Memory Testing
+**Function:** `authentication_analysis()`
 
-### Memory Bomb
-```bash
-# Allocate large amounts of memory
-curl -X POST http://localhost:8888/cdp/execute \
-  -d '{"code": "let bomb = []; for(let i = 0; i < 1000000; i++) bomb.push(new Array(1000).fill(\"x\"));"}'
+Analyze authentication mechanisms and security headers
 
-# Monitor memory usage
-curl http://localhost:8888/cdp/performance/memory
-```
+**Parameters:**
+- `auth_type` *(string)* *(optional)*: Type of auth to analyze (cookie, token, session)
+- `check_headers=true` *(boolean)* *(optional)*: Analyze security headers
 
-## Malformed Data Testing
+**Returns:** {object} Authentication security analysis including header analysis and auth flow review
 
-### Invalid Selectors
-```bash
-# Test with broken selectors
-curl -X POST http://localhost:8888/cdp/click \
-  -d '{"selector": "<<<invalid>>>"}'
+---
 
-# Test with null bytes
-curl -X POST http://localhost:8888/cdp/type \
-  -d "{\"text\": \"test\\u0000null\", \"selector\": \"#input\"}"
-```
+## GET/POST /cdp/security/data_protection
 
-### Protocol Abuse
-```bash
-# Send malformed CDP commands
-curl -X POST http://localhost:8888/cdp/command \
-  -d '{"method": "Invalid.Method", "params": {"bad": "data"}}'
+**Function:** `data_protection_analysis()`
 
-# Test with extreme values
-curl -X POST http://localhost:8888/cdp/click \
-  -d '{"x": 999999999, "y": -999999999}'
-```
+Analyze data protection and privacy compliance measures
 
-## DOS Testing
+**Parameters:**
+- `check_forms=true` *(boolean)* *(optional)*: Analyze form security
+- `check_storage=true` *(boolean)* *(optional)*: Analyze data storage patterns
 
-### Request Flooding
-```bash
-# Rapid screenshot requests
-for i in {1..100}; do
-  curl http://localhost:8888/cdp/screenshot > /dev/null &
-done
-```
+**Returns:** {object} Data protection analysis including form security and storage compliance
 
-### Resource Exhaustion
-```bash
-# DOM manipulation bomb
-curl -X POST http://localhost:8888/cdp/execute \
-  -d '{"code": "for(let i=0;i<10000;i++){document.body.appendChild(document.createElement(\"div\"));}"}'
-```
+---
 
-## Security Headers Testing
+## GET/POST /cdp/security/threat_assessment
 
-### Check Response Headers
-```bash
-# Inspect security headers
-curl -I http://localhost:8888/cdp/status
+**Function:** `threat_assessment()`
 
-# Test CORS behavior
-curl -H "Origin: https://evil.com" http://localhost:8888/cdp/status
-```
+Perform comprehensive threat assessment of current page
 
-## Responsible Testing Guidelines
+**Parameters:**
+- `focus_area` *(string)* *(optional)*: Specific threat area to focus on (xss, injection, clickjacking)
+- `include_mitigation=true` *(boolean)* *(optional)*: Include mitigation strategies
 
-⚠️ **IMPORTANT**: These examples are for **authorized testing only**
+**Returns:** {object} Comprehensive threat assessment with risk levels and mitigation recommendations
 
-- **Own systems only**: Never test on systems you don't own
-- **Controlled environment**: Use isolated test environments
-- **Documented consent**: Ensure proper authorization
-- **Responsible disclosure**: Report findings through proper channels
-- **No harm**: Avoid causing damage or data loss
+---
 
-## Detection Bypass Testing
+## GET/POST /cdp/security/penetration_test
 
-### Anti-Automation Evasion
-```bash
-# Test with realistic delays
-curl -X POST http://localhost:8888/cdp/type \
-  -d '{"text": "human", "selector": "#input"}'
-sleep 2
-curl -X POST http://localhost:8888/cdp/click \
-  -d '{"selector": "#submit"}'
+**Function:** `penetration_test()`
 
-# Test stealth capabilities
-curl http://localhost:8888/cdp/console/logs | grep -i "webdriver"
-```
+Perform ethical penetration testing of web application security
 
-**Note**: CDP Ninja has successfully bypassed BrowserScan.net detection in testing, indicating potential gaps in current bot detection mechanisms.
+**Parameters:**
+- `test_type` *(string)* *(optional)*: Type of pen test (input_validation, auth_bypass, session)
+- `safe_mode=true` *(boolean)* *(optional)*: Perform only safe, non-destructive tests
+
+**Returns:** {object} Penetration test results with security findings and proof-of-concept demonstrations
+
+---
+
+## GET/POST /cdp/security/compliance_check
+
+**Function:** `compliance_check()`
+
+Check compliance with security standards and regulations
+
+**Parameters:**
+- `standard` *(string)* *(optional)*: Compliance standard to check (owasp, gdpr, pci-dss)
+- `detailed_report=true` *(boolean)* *(optional)*: Include detailed compliance breakdown
+
+**Returns:** {object} Compliance assessment with standard-specific recommendations and gap analysis
+
+---
+
+## GET/POST /cdp/security/ethical_hacking
+
+**Function:** `ethical_hacking()`
+
+Perform ethical hacking assessment with strict defensive focus
+
+**Parameters:**
+- `technique` *(string)* *(optional)*: Ethical hacking technique (reconnaissance, vulnerability_analysis)
+- `documentation_mode=true` *(boolean)* *(optional)*: Generate security documentation
+
+**Returns:** {object} Ethical hacking assessment focused on defensive security measures and documentation
+
+---
+
+## GET/POST /cdp/security/protection_validation
+
+**Function:** `protection_validation()`
+
+Validate effectiveness of security protection measures
+
+**Parameters:**
+- `protection_type` *(string)* *(optional)*: Type of protection to validate (headers, encryption, access_control)
+- `generate_report=true` *(boolean)* *(optional)*: Generate validation report
+
+**Returns:** {object} Protection validation results with effectiveness assessment and improvement recommendations
+
+---
+

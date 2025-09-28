@@ -24,7 +24,7 @@ def security_vulnerabilities():
     """
     Scan for common web vulnerabilities using Security domain
 
-    @GET/POST /cdp/security/vulnerabilities
+    @route GET/POST /cdp/security/vulnerabilities
     @param {string} [target_url] - Specific URL to analyze
     @param {boolean} [include_recommendations=true] - Include fix recommendations
     @returns {object} Vulnerability assessment report with findings and severity levels
@@ -207,7 +207,7 @@ def authentication_analysis():
     """
     Analyze authentication mechanisms and security headers
 
-    @GET/POST /cdp/security/authentication
+    @route GET/POST /cdp/security/authentication
     @param {string} [auth_type] - Type of auth to analyze (cookie, token, session)
     @param {boolean} [check_headers=true] - Analyze security headers
     @returns {object} Authentication security analysis including header analysis and auth flow review
@@ -393,7 +393,7 @@ def data_protection_analysis():
     """
     Analyze data protection and privacy compliance measures
 
-    @GET/POST /cdp/security/data_protection
+    @route GET/POST /cdp/security/data_protection
     @param {boolean} [check_forms=true] - Analyze form security
     @param {boolean} [check_storage=true] - Analyze data storage patterns
     @returns {object} Data protection analysis including form security and storage compliance
@@ -581,7 +581,7 @@ def threat_assessment():
     """
     Perform comprehensive threat assessment of current page
 
-    @GET/POST /cdp/security/threat_assessment
+    @route GET/POST /cdp/security/threat_assessment
     @param {string} [focus_area] - Specific threat area to focus on (xss, injection, clickjacking)
     @param {boolean} [include_mitigation=true] - Include mitigation strategies
     @returns {object} Comprehensive threat assessment with risk levels and mitigation recommendations
@@ -799,7 +799,7 @@ def penetration_test():
     """
     Perform ethical penetration testing of web application security
 
-    @GET/POST /cdp/security/penetration_test
+    @route GET/POST /cdp/security/penetration_test
     @param {string} [test_type] - Type of pen test (input_validation, auth_bypass, session)
     @param {boolean} [safe_mode=true] - Perform only safe, non-destructive tests
     @returns {object} Penetration test results with security findings and proof-of-concept demonstrations
@@ -1043,7 +1043,7 @@ def compliance_check():
     """
     Check compliance with security standards and regulations
 
-    @GET/POST /cdp/security/compliance_check
+    @route GET/POST /cdp/security/compliance_check
     @param {string} [standard] - Compliance standard to check (owasp, gdpr, pci-dss)
     @param {boolean} [detailed_report=true] - Include detailed compliance breakdown
     @returns {object} Compliance assessment with standard-specific recommendations and gap analysis
@@ -1258,7 +1258,7 @@ def ethical_hacking():
     """
     Perform ethical hacking assessment with strict defensive focus
 
-    @GET/POST /cdp/security/ethical_hacking
+    @route GET/POST /cdp/security/ethical_hacking
     @param {string} [technique] - Ethical hacking technique (reconnaissance, vulnerability_analysis)
     @param {boolean} [documentation_mode=true] - Generate security documentation
     @returns {object} Ethical hacking assessment focused on defensive security measures and documentation
@@ -1497,7 +1497,7 @@ def protection_validation():
     """
     Validate effectiveness of security protection measures
 
-    @GET/POST /cdp/security/protection_validation
+    @route GET/POST /cdp/security/protection_validation
     @param {string} [protection_type] - Type of protection to validate (headers, encryption, access_control)
     @param {boolean} [generate_report=true] - Generate validation report
     @returns {object} Protection validation results with effectiveness assessment and improvement recommendations
