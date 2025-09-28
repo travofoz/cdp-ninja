@@ -35,7 +35,7 @@ except FileNotFoundError:
 
 setup(
     name="cdp-ninja",
-    version="2.0.0",
+    version="2.0.1",
     author="CDP Ninja Contributors",
     author_email="dev@example.com",
     description="🥷 Lightweight Chrome DevTools Protocol bridge for browser debugging and security testing",

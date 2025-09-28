@@ -10,7 +10,7 @@ from .server import CDPBridgeServer
 from .core.cdp_client import CDPClient
 from .core.cdp_pool import CDPConnectionPool, get_global_pool
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 __author__ = "CDP Ninja Contributors"
 __description__ = "🥷 Lightweight Chrome DevTools Protocol bridge for browser debugging and security testing"
 

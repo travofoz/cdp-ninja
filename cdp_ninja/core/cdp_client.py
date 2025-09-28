@@ -359,6 +359,7 @@ class CDPClient:
         try:
             # Send command
             message = json.dumps(command)
+            logger.debug(f"Sending to Chrome: {message}")
             if not self.connection.send(message):
                 with self.command_lock:
                     if cmd_id in self.pending_commands:

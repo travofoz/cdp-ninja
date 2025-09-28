@@ -44,9 +44,12 @@ def execute_javascript():
     try:
         data = request.get_json() or {}
         code = data.get('code', '')  # Could be empty, huge, malicious - we don't care
+
+        # Debug: log what we actually received
+        logger.debug(f"Received code: {repr(code)}")
         await_promise = data.get('await', False)
         timeout = data.get('timeout', 30000)  # User-controlled timeout
-        return_by_value = data.get('return_by_value', True)
+        return_by_value = data.get('return_by_value', False)
 
         pool = get_global_pool()
         cdp = pool.acquire(timeout=timeout/1000)
