@@ -112,7 +112,7 @@ def setup_ssh_tunnel(target_host, bridge_port=8888, instruct_only=False):
 
             try:
                 test_result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
-                if test_result.returncode == 0 and '"status":"healthy"' in test_result.stdout:
+                if test_result.returncode == 0 and '"status": "healthy"' in test_result.stdout:
                     print("✅ Tunnel verification successful - CDP Ninja accessible from remote!")
                     print(f"\n💡 Tunnel is running in background (PID {process.pid})")
                     print(f"💡 Kill with: taskkill /F /PID {process.pid}")
