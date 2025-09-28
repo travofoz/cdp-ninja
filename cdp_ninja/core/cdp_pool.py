@@ -322,9 +322,12 @@ def initialize_global_pool(max_connections: int = 5, port: int = 9222,
     """
     global _global_pool
 
-    # Initialize domain manager first
-    initialize_domain_manager(max_risk_level)
-    logger.info(f"Initialized domain manager with max risk level: {max_risk_level.value}")
+    # Use existing domain manager or create if needed
+    domain_manager = get_domain_manager()
+    if domain_manager.max_risk_level != max_risk_level:
+        # If risk level is different, update it (but keep existing domains)
+        domain_manager.set_risk_level(max_risk_level)
+    logger.info(f"Using domain manager with max risk level: {domain_manager.max_risk_level.value}")
 
     # Initialize connection pool
     _global_pool = CDPConnectionPool(max_connections=max_connections, port=port)
