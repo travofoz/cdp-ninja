@@ -13,6 +13,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
 from .domain_manager import get_domain_manager, CDPDomain as DomainManagerCDPDomain
+from .event_manager import get_event_manager
 from queue import Queue, Empty, Full
 from threading import Thread, Lock, Event
 from typing import Dict, List, Optional, Any, Callable
@@ -211,11 +212,9 @@ class CDPClient:
         self.auto_reconnect = auto_reconnect
         self.default_timeout = timeout
 
-        # Event management
+        # Event management - centralized through EventManager
         self.max_events = max_events
-        self.event_queue = Queue(maxsize=max_events)
-        self.events_by_domain = defaultdict(lambda: deque(maxlen=100))
-        self.event_handlers: Dict[str, List[Callable]] = defaultdict(list)
+        # No longer store events locally - all events go through centralized EventManager
 
         # Command tracking
         self.command_id = 1
@@ -310,23 +309,13 @@ class CDPClient:
                 self.pending_commands[cmd_id]['event'].set()
 
     def _handle_event(self, event: CDPEvent):
-        """Process and distribute CDP events"""
-        # Store in domain-specific queue
-        self.events_by_domain[event.domain].append(event)
-
-        # Add to general queue (non-blocking, drop if full)
-        try:
-            self.event_queue.put_nowait(event)
-        except Full:
-            logger.debug(f"Event queue full, dropping {event.method} event")
-            pass
-
-        # Trigger registered handlers
-        for handler in self.event_handlers.get(event.method, []):
-            try:
-                handler(event)
-            except Exception as e:
-                logger.error(f"Event handler error for {event.method}: {e}")
+        """Process and distribute CDP events via centralized EventManager"""
+        event_manager = get_event_manager()
+        if event_manager:
+            # Store event in centralized manager (handles domain filtering, storage, and handlers)
+            event_manager.store_event(event)
+        else:
+            logger.warning(f"No EventManager available, dropping event: {event.method}")
 
     def send_command(self, method: str, params: Optional[dict] = None,
                     timeout: Optional[float] = None) -> dict:
@@ -402,33 +391,28 @@ class CDPClient:
 
     def register_event_handler(self, method: str, handler: Callable[[CDPEvent], None]):
         """Register callback for specific CDP event"""
-        self.event_handlers[method].append(handler)
-        logger.debug(f"Registered handler for {method}")
+        event_manager = get_event_manager()
+        if event_manager:
+            event_manager.register_event_handler(method, handler)
+        else:
+            logger.warning(f"No EventManager available, cannot register handler for {method}")
 
     def get_recent_events(self, domain: Optional[str] = None, limit: int = 50) -> List[CDPEvent]:
         """Get recent events, optionally filtered by domain"""
-        if domain:
-            events = list(self.events_by_domain[domain])
-            return events[-limit:] if events else []
+        event_manager = get_event_manager()
+        if event_manager:
+            return event_manager.get_recent_events(domain, limit)
         else:
-            events = []
-            try:
-                while not self.event_queue.empty() and len(events) < limit:
-                    events.append(self.event_queue.get_nowait())
-            except Empty:
-                pass
-            return events
+            logger.warning("No EventManager available, returning empty events")
+            return []
 
     def clear_events(self, domain: Optional[str] = None):
         """Clear stored events"""
-        if domain:
-            self.events_by_domain[domain].clear()
+        event_manager = get_event_manager()
+        if event_manager:
+            event_manager.clear_events(domain)
         else:
-            # Clear all events
-            with self.event_queue.mutex:
-                self.event_queue.queue.clear()
-            for domain_queue in self.events_by_domain.values():
-                domain_queue.clear()
+            logger.warning("No EventManager available, cannot clear events")
 
     def is_connected(self) -> bool:
         """Check if connected to Chrome DevTools"""
@@ -436,13 +420,16 @@ class CDPClient:
 
     def get_connection_info(self) -> dict:
         """Get connection information"""
+        event_manager = get_event_manager()
+        event_stats = event_manager.get_statistics() if event_manager else {}
+
         return {
             "connected": self.is_connected(),
             "host": self.connection.host,
             "port": self.connection.port,
             "url": self.connection.url,
-            "events_queued": self.event_queue.qsize(),
-            "domains_active": list(self.events_by_domain.keys())
+            "events_queued": event_stats.get("current_queue_size", 0),
+            "domains_active": list(event_stats.get("domains_with_events", {}).keys())
         }
 
 

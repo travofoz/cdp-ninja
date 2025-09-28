@@ -23,6 +23,7 @@ import psutil
 from cdp_ninja.core.cdp_client import CDPClient, CDPEvent
 from cdp_ninja.core.cdp_pool import CDPConnectionPool, get_global_pool, initialize_global_pool, shutdown_global_pool
 from cdp_ninja.core.domain_manager import DomainRiskLevel
+from cdp_ninja.core.event_manager import initialize_event_manager
 from cdp_ninja.config import config
 from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes, dom_routes, dom_advanced_routes, network_intelligence_routes, js_debugging_routes, stress_testing_routes, system_routes, error_handling_routes, performance_routes, security_routes, accessibility_routes, stress_testing_advanced_routes
 
@@ -75,6 +76,9 @@ class CDPBridgeServer:
         self.timeout = timeout
         self.max_risk_level = max_risk_level
         self.max_connections = max_connections
+
+        # Initialize centralized event manager
+        initialize_event_manager(max_events_per_domain=200, max_total_events=self.max_connections * 1000)
 
         # Server state
         self.start_time = datetime.now()
