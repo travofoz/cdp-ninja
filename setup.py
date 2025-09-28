@@ -5,6 +5,7 @@ Lightweight Chrome DevTools Protocol bridge for browser debugging
 
 from setuptools import setup, find_packages
 from pathlib import Path
+import glob
 
 # Read README for long description
 readme_path = Path(__file__).parent / "README.md"
@@ -82,6 +83,11 @@ setup(
         ],
     },
     include_package_data=True,
+    data_files=[
+        ("agents", glob.glob("agents/*.md")),
+        ("docs", glob.glob("docs/*.md")),
+        ("docs/usage", glob.glob("docs/usage/*.md")),
+    ],
     package_data={
         "": [
             "*.md",
@@ -90,7 +96,6 @@ setup(
             "*.ps1",
             "setup/*.ps1",
             "setup/*.sh",
-            "agent/*.md",
             "examples/*.py"
         ],
     },
