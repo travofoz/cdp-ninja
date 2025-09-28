@@ -68,7 +68,7 @@ curl "http://localhost:8888/cdp/status"                      # Connection check
 curl "http://localhost:8888/cdp/screenshot"                 # Visual intel
 curl "http://localhost:8888/cdp/console/logs?level=error"   # Error intel only
 curl "http://localhost:8888/cdp/network/requests?failed=true" # Failed requests
-curl -X POST "http://localhost:8888/cdp/dom/query" -H "Content-Type: application/json" -d '{"selector":"body"}' # Basic DOM
+curl -X POST "http://localhost:8888/cdp/dom/query" -H "Content-Type: application/json" -d $'{"'selector":"body"}' # Basic DOM
 ```
 
 ### Common Command Patterns
@@ -86,7 +86,7 @@ curl "http://localhost:8888/cdp/network/requests?slow=true&threshold=1000"
 # DOM queries (always use proper JSON headers)
 curl -X POST "http://localhost:8888/cdp/dom/query" \
   -H "Content-Type: application/json" \
-  -d '{"selector":".error-message","all":true}'
+  -d $'{"'selector":".error-message","all":true}'
 
 # Form analysis
 curl "http://localhost:8888/cdp/form/values?selector=#login-form"

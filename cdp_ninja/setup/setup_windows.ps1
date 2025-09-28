@@ -515,7 +515,7 @@ ssh -L ${BridgePort}:localhost:$BridgePort username@$localIP
 📚 Usage Examples:
 • Health Check: curl http://localhost:$BridgePort/health
 • Take Screenshot: curl http://localhost:$BridgePort/cdp/screenshot > screenshot.png
-• Execute JavaScript: curl -X POST http://localhost:$BridgePort/cdp/execute -H "Content-Type: application/json" -d '{"code":"document.title"}'
+• Execute JavaScript: curl -X POST http://localhost:$BridgePort/cdp/execute -H "Content-Type: application/json" -d $'{"'code":"document.title"}'
 
 🔧 Configuration:
 Edit config.json to customize settings

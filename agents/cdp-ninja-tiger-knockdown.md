@@ -73,25 +73,25 @@ The Tiger Knockdown school wages aggressive warfare against application structur
 # Aggressive interaction testing - ALWAYS QUOTE URLs with query params
 curl -X POST "http://localhost:8888/cdp/stress/click_storm" \
   -H "Content-Type: application/json" \
-  -d '{"target": ".submit-btn", "count": 100, "interval": 10}'
+  -d $'{"'target": ".submit-btn", "count": 100, "interval": 10}'
 
 curl -X POST "http://localhost:8888/cdp/stress/form_flood" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "#contact-form", "submissions": 50, "parallel": true}'
+  -d $'{"'selector": "#contact-form", "submissions": 50, "parallel": true}'
 
 # Memory and CPU assault
 curl -X POST "http://localhost:8888/cdp/stress/memory_bomb" \
   -H "Content-Type: application/json" \
-  -d '{"size_mb": 100, "allocate_rate": "fast", "monitor": true}'
+  -d $'{"'size_mb": 100, "allocate_rate": "fast", "monitor": true}'
 
 curl -X POST "http://localhost:8888/cdp/stress/cpu_burn" \
   -H "Content-Type: application/json" \
-  -d '{"duration": 5000, "intensity": "high", "block_main_thread": true}'
+  -d $'{"'duration": 5000, "intensity": "high", "block_main_thread": true}'
 
 # Network flooding and connection exhaustion
 curl -X POST "http://localhost:8888/cdp/stress/request_storm" \
   -H "Content-Type: application/json" \
-  -d '{"endpoint": "/api/data", "concurrent": 20, "duration": 10000}'
+  -d $'{"'endpoint": "/api/data", "concurrent": 20, "duration": 10000}'
 ```
 
 ### Boundary and Limit Testing
@@ -99,21 +99,21 @@ curl -X POST "http://localhost:8888/cdp/stress/request_storm" \
 # Input boundary assault
 curl -X POST "http://localhost:8888/cdp/stress/input_overflow" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "input[type=text]", "payload_size": 10000, "special_chars": true}'
+  -d $'{"'selector": "input[type=text]", "payload_size": 10000, "special_chars": true}'
 
 curl -X POST "http://localhost:8888/cdp/stress/field_bombing" \
   -H "Content-Type: application/json" \
-  -d '{"form": "#registration", "boundary_values": true, "malformed_data": true}'
+  -d $'{"'form": "#registration", "boundary_values": true, "malformed_data": true}'
 
 # Storage limit breaking
 curl -X POST "http://localhost:8888/cdp/stress/storage_flood" \
   -H "Content-Type: application/json" \
-  -d '{"type": "localStorage", "fill_to_limit": true, "oversized_values": true}'
+  -d $'{"'type": "localStorage", "fill_to_limit": true, "oversized_values": true}'
 
 # Rapid navigation assault
 curl -X POST "http://localhost:8888/cdp/stress/navigation_storm" \
   -H "Content-Type: application/json" \
-  -d '{"routes": ["/home", "/about", "/contact"], "rapid_switching": true, "count": 30}'
+  -d $'{"'routes": ["/home", "/about", "/contact"], "rapid_switching": true, "count": 30}'
 ```
 
 ### Chaos Engineering Operations
@@ -121,27 +121,27 @@ curl -X POST "http://localhost:8888/cdp/stress/navigation_storm" \
 # Random interaction chaos
 curl -X POST "http://localhost:8888/cdp/stress/chaos_monkey" \
   -H "Content-Type: application/json" \
-  -d '{"duration": 30000, "random_clicks": true, "random_inputs": true, "unpredictable": true}'
+  -d $'{"'duration": 30000, "random_clicks": true, "random_inputs": true, "unpredictable": true}'
 
 # Race condition triggering
 curl -X POST "http://localhost:8888/cdp/stress/race_conditions" \
   -H "Content-Type: application/json" \
-  -d '{"async_operations": true, "timing_attacks": true, "concurrent_mutations": true}'
+  -d $'{"'async_operations": true, "timing_attacks": true, "concurrent_mutations": true}'
 
 # State corruption assault
 curl -X POST "http://localhost:8888/cdp/stress/state_corruption" \
   -H "Content-Type: application/json" \
-  -d '{"target": "userSession", "invalid_data": true, "timing_manipulation": true}'
+  -d $'{"'target": "userSession", "invalid_data": true, "timing_manipulation": true}'
 
 # Environmental stress simulation
 curl -X POST "http://localhost:8888/cdp/stress/environment_chaos" \
   -H "Content-Type: application/json" \
-  -d '{"slow_network": true, "connection_drops": true, "limited_memory": true}'
+  -d $'{"'slow_network": true, "connection_drops": true, "limited_memory": true}'
 
 # Multi-vector coordinated assault
 curl -X POST "http://localhost:8888/cdp/stress/full_assault" \
   -H "Content-Type: application/json" \
-  -d '{"memory": true, "cpu": true, "network": true, "interactions": true, "duration": 15000}'
+  -d $'{"'memory": true, "cpu": true, "network": true, "interactions": true, "duration": 15000}'
 ```
 
 ### Critical Syntax Rules

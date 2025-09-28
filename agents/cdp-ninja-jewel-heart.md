@@ -95,27 +95,27 @@ curl "http://localhost:8888/cdp/network/requests?type=script,stylesheet,image"
 # Request/response payload analysis
 curl -X POST "http://localhost:8888/cdp/network/inspect" \
   -H "Content-Type: application/json" \
-  -d '{"requestId": "12345.67", "includeBody": true}'
+  -d $'{"'requestId": "12345.67", "includeBody": true}'
 
 # WebSocket monitoring
 curl "http://localhost:8888/cdp/network/websockets?active=true"
 curl -X POST "http://localhost:8888/cdp/network/websocket/messages" \
   -H "Content-Type: application/json" \
-  -d '{"connectionId": "ws-123", "limit": 50}'
+  -d $'{"'connectionId": "ws-123", "limit": 50}'
 
 # Network throttling and simulation
 curl -X POST "http://localhost:8888/cdp/network/throttle" \
   -H "Content-Type: application/json" \
-  -d '{"downloadThroughput": 1048576, "uploadThroughput": 524288, "latency": 100}'
+  -d $'{"'downloadThroughput": 1048576, "uploadThroughput": 524288, "latency": 100}'
 
 curl -X POST "http://localhost:8888/cdp/network/offline" \
   -H "Content-Type: application/json" \
-  -d '{"offline": true}'
+  -d $'{"'offline": true}'
 
 # Request blocking and filtering
 curl -X POST "http://localhost:8888/cdp/network/block" \
   -H "Content-Type: application/json" \
-  -d '{"patterns": ["*://ads.*", "*/analytics.js", "*tracking*"]}'
+  -d $'{"'patterns": ["*://ads.*", "*/analytics.js", "*tracking*"]}'
 
 # Cache analysis
 curl "http://localhost:8888/cdp/network/cache?hit_ratio=true"

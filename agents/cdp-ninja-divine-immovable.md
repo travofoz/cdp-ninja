@@ -81,16 +81,16 @@ curl "http://localhost:8888/cdp/errors/promises?rejected=true&unhandled=true"
 # Error boundary and handler inspection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "typeof window.onerror === \"function\" ? \"present\" : \"missing\""}'
+  -d $'{"'expression": "typeof window.onerror === \"function\" ? \"present\" : \"missing\""}'
 
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "typeof window.onunhandledrejection === \"function\" ? \"present\" : \"missing\""}'
+  -d $'{"'expression": "typeof window.onunhandledrejection === \"function\" ? \"present\" : \"missing\""}'
 
 # React error boundary detection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Object.keys(window).filter(k => k.includes(\"ErrorBoundary\")).length"}'
+  -d $'{"'expression": "Object.keys(window).filter(k => k.includes(\"ErrorBoundary\")).length"}'
 ```
 
 ### Error Simulation and Testing
@@ -98,26 +98,26 @@ curl -X POST "http://localhost:8888/cdp/execute" \
 # Safe error simulation for testing recovery
 curl -X POST "http://localhost:8888/cdp/errors/simulate" \
   -H "Content-Type: application/json" \
-  -d '{"type": "network", "endpoint": "/api/test", "errorCode": 500}'
+  -d $'{"'type": "network", "endpoint": "/api/test", "errorCode": 500}'
 
 curl -X POST "http://localhost:8888/cdp/errors/simulate" \
   -H "Content-Type: application/json" \
-  -d '{"type": "javascript", "error": "TypeError", "safe": true}'
+  -d $'{"'type": "javascript", "error": "TypeError", "safe": true}'
 
 # Recovery mechanism testing
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "try { throw new Error(\"Test recovery\") } catch(e) { \"Recovery tested\" }"}'
+  -d $'{"'expression": "try { throw new Error(\"Test recovery\") } catch(e) { \"Recovery tested\" }"}'
 
 # State corruption simulation
 curl -X POST "http://localhost:8888/cdp/state/corrupt" \
   -H "Content-Type: application/json" \
-  -d '{"component": "userSession", "recovery": true}'
+  -d $'{"'component": "userSession", "recovery": true}'
 
 # Fallback UI testing
 curl -X POST "http://localhost:8888/cdp/errors/trigger_fallback" \
   -H "Content-Type: application/json" \
-  -d '{"component": "PaymentForm", "fallbackType": "offline"}'
+  -d $'{"'component": "PaymentForm", "fallbackType": "offline"}'
 ```
 
 ### Recovery Strategy Validation
@@ -128,17 +128,17 @@ curl "http://localhost:8888/cdp/network/retries?failed=true&attempts=show"
 # Transaction integrity checking
 curl -X POST "http://localhost:8888/cdp/state/transaction" \
   -H "Content-Type: application/json" \
-  -d '{"action": "validate", "rollback": true}'
+  -d $'{"'action": "validate", "rollback": true}'
 
 # User feedback mechanism testing
 curl -X POST "http://localhost:8888/cdp/ui/notifications" \
   -H "Content-Type: application/json" \
-  -d '{"type": "error", "test": true}'
+  -d $'{"'type": "error", "test": true}'
 
 # Progressive enhancement verification
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "typeof document.querySelector(\".no-js\") !== null"}'
+  -d $'{"'expression": "typeof document.querySelector(\".no-js\") !== null"}'
 ```
 
 ### Critical Syntax Rules

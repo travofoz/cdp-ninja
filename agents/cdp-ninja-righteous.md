@@ -85,7 +85,7 @@ curl "http://localhost:8888/cdp/security/cookies?secure_flags=true&httponly=true
 # Input validation and injection testing
 curl -X POST "http://localhost:8888/cdp/security/injection_test" \
   -H "Content-Type: application/json" \
-  -d '{"payloads": "safe_only", "contexts": ["forms", "urls", "headers"]}'
+  -d $'{"'payloads": "safe_only", "contexts": ["forms", "urls", "headers"]}'
 ```
 
 ### Advanced Security Analysis
@@ -101,17 +101,17 @@ curl "http://localhost:8888/cdp/security/external_resources?integrity=check&sour
 # Client-side security scanning
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Object.keys(window).filter(k => k.includes(\"token\") || k.includes(\"key\") || k.includes(\"secret\")).length"}'
+  -d $'{"'expression": "Object.keys(window).filter(k => k.includes(\"token\") || k.includes(\"key\") || k.includes(\"secret\")).length"}'
 
 # Form security validation
 curl -X POST "http://localhost:8888/cdp/security/form_analysis" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "form", "csrf_protection": true, "input_validation": true}'
+  -d $'{"'selector": "form", "csrf_protection": true, "input_validation": true}'
 
 # Storage security audit
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Object.keys(localStorage).concat(Object.keys(sessionStorage)).filter(k => k.toLowerCase().includes(\"token\") || k.toLowerCase().includes(\"key\"))"}'
+  -d $'{"'expression": "Object.keys(localStorage).concat(Object.keys(sessionStorage)).filter(k => k.toLowerCase().includes(\"token\") || k.toLowerCase().includes(\"key\"))"}'
 ```
 
 ### Ethical Security Testing
@@ -119,12 +119,12 @@ curl -X POST "http://localhost:8888/cdp/execute" \
 # Safe vulnerability probing (no exploitation)
 curl -X POST "http://localhost:8888/cdp/security/safe_probe" \
   -H "Content-Type: application/json" \
-  -d '{"test_type": "xss", "payload": "safe_detection", "exploit": false}'
+  -d $'{"'test_type": "xss", "payload": "safe_detection", "exploit": false}'
 
 # Authentication boundary testing
 curl -X POST "http://localhost:8888/cdp/security/auth_boundaries" \
   -H "Content-Type: application/json" \
-  -d '{"test_privilege_escalation": false, "document_only": true}'
+  -d $'{"'test_privilege_escalation": false, "document_only": true}'
 
 # Data leakage detection (observation only)
 curl "http://localhost:8888/cdp/security/data_leakage?detect_only=true&no_extraction=true"

@@ -534,7 +534,7 @@ ${CYAN}📚 Usage Examples:${NC}
 • Take Screenshot: curl http://localhost:$bridge_port/cdp/screenshot > screenshot.png
 • Execute JavaScript: curl -X POST http://localhost:$bridge_port/cdp/execute \\
     -H "Content-Type: application/json" \\
-    -d '{"code":"document.title"}'
+    -d $'{"'code":"document.title"}'
 
 ${CYAN}🔧 Configuration:${NC}
 Edit $install_dir/config.json to customize settings

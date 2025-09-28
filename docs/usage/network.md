@@ -55,7 +55,7 @@ Block URLs matching patterns.
 ```bash
 curl -X POST http://localhost:8888/cdp/network/block \
   -H "Content-Type: application/json" \
-  -d '{"patterns": ["*://ads.*/*", "*://analytics.*/*"]}'
+  -d $'{"patterns": ["*://ads.*/*", "*://analytics.*/*"]}'
 ```
 
 ## Network Throttling
@@ -77,15 +77,15 @@ Simulate slow network conditions.
 ```bash
 # Slow 3G
 curl -X POST http://localhost:8888/cdp/network/throttle \
-  -d '{"download": 400000, "upload": 400000, "latency": 400}'
+  -d $'{"download": 400000, "upload": 400000, "latency": 400}'
 
 # Fast 3G
 curl -X POST http://localhost:8888/cdp/network/throttle \
-  -d '{"download": 1600000, "upload": 750000, "latency": 150}'
+  -d $'{"download": 1600000, "upload": 750000, "latency": 150}'
 
 # Offline mode
 curl -X POST http://localhost:8888/cdp/network/throttle \
-  -d '{"offline": true}'
+  -d $'{"offline": true}'
 ```
 
 ## Cache Management
@@ -107,11 +107,11 @@ curl http://localhost:8888/cdp/network/requests | jq '.requests[] | select(.fail
 
 # Block social media
 curl -X POST http://localhost:8888/cdp/network/block \
-  -d '{"patterns": ["*://facebook.com/*", "*://twitter.com/*", "*://instagram.com/*"]}'
+  -d $'{"patterns": ["*://facebook.com/*", "*://twitter.com/*", "*://instagram.com/*"]}"
 
 # Simulate mobile network
 curl -X POST http://localhost:8888/cdp/network/throttle \
-  -d '{"download": 1600000, "upload": 750000, "latency": 150}'
+  -d $'{"download": 1600000, "upload": 750000, "latency": 150}'
 ```
 
 ### Performance Analysis

@@ -100,11 +100,11 @@ curl "http://localhost:8888/cdp/ux/viewport?zoom_levels=true&orientation=true"
 # Form and interaction accessibility
 curl -X POST "http://localhost:8888/cdp/accessibility/form_analysis" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "form", "validation": true, "labels": true}'
+  -d $'{"'selector": "form", "validation": true, "labels": true}'
 
 curl -X POST "http://localhost:8888/cdp/accessibility/landmarks" \
   -H "Content-Type: application/json" \
-  -d '{"semantic_structure": true, "navigation": true}'
+  -d $'{"'semantic_structure": true, "navigation": true}'
 ```
 
 ### Advanced Accessibility Testing
@@ -112,27 +112,27 @@ curl -X POST "http://localhost:8888/cdp/accessibility/landmarks" \
 # ARIA and semantic markup validation
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Array.from(document.querySelectorAll(\"[aria-*]\")).map(el => ({tag: el.tagName, aria: Array.from(el.attributes).filter(a => a.name.startsWith(\"aria-\")).map(a => a.name)}))"}'
+  -d $'{"'expression": "Array.from(document.querySelectorAll(\"[aria-*]\")).map(el => ({tag: el.tagName, aria: Array.from(el.attributes).filter(a => a.name.startsWith(\"aria-\")).map(a => a.name)}))"}'
 
 # Focus management testing
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "document.activeElement ? {tag: document.activeElement.tagName, id: document.activeElement.id, class: document.activeElement.className} : \"no focus\""}'
+  -d $'{"'expression": "document.activeElement ? {tag: document.activeElement.tagName, id: document.activeElement.id, class: document.activeElement.className} : \"no focus\""}'
 
 # Heading structure analysis
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Array.from(document.querySelectorAll(\"h1,h2,h3,h4,h5,h6\")).map(h => ({level: h.tagName, text: h.textContent.trim().substring(0,50)}))"}'
+  -d $'{"'expression": "Array.from(document.querySelectorAll(\"h1,h2,h3,h4,h5,h6\")).map(h => ({level: h.tagName, text: h.textContent.trim().substring(0,50)}))"}'
 
 # Alternative text and media accessibility
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Array.from(document.images).filter(img => !img.alt || img.alt.trim() === \"\").length"}'
+  -d $'{"'expression": "Array.from(document.images).filter(img => !img.alt || img.alt.trim() === \"\").length"}'
 
 # Skip links and landmark navigation
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "document.querySelector(\"a[href^=\\\"#\\\"]\") ? \"skip links present\" : \"no skip links\""}'
+  -d $'{"'expression": "document.querySelector(\"a[href^=\\\"#\\\"]\") ? \"skip links present\" : \"no skip links\""}'
 ```
 
 ### Critical Syntax Rules

@@ -81,7 +81,7 @@ curl "http://localhost:8888/cdp/memory/usage?trend=5m&gc_info=true"
 # CPU and execution profiling
 curl -X POST "http://localhost:8888/cdp/profiler/start" \
   -H "Content-Type: application/json" \
-  -d '{"samplingInterval": 100, "duration": 10000}'
+  -d $'{"'samplingInterval": 100, "duration": 10000}'
 
 curl "http://localhost:8888/cdp/profiler/stop?format=json"
 
@@ -103,7 +103,7 @@ curl "http://localhost:8888/cdp/web_workers/messages?timing=true&size=true"
 # Timer and async operation monitoring
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Object.keys(window).filter(k => k.includes(\"Timer\") || k.includes(\"Interval\")).length"}'
+  -d $'{"'expression": "Object.keys(window).filter(k => k.includes(\"Timer\") || k.includes(\"Interval\")).length"}'
 
 # Background fetch and sync analysis
 curl "http://localhost:8888/cdp/background_sync?pending=true&performance=true"
@@ -119,17 +119,17 @@ curl "http://localhost:8888/cdp/memory/heap_snapshot?compare_to_previous=true"
 # Event listener leak detection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Object.keys(getEventListeners(document.body)).length"}'
+  -d $'{"'expression": "Object.keys(getEventListeners(document.body)).length"}'
 
 # Performance observer setup
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "new PerformanceObserver(list => console.log(\"CloudHiding:\", list.getEntries())).observe({entryTypes: [\"measure\", \"navigation\", \"resource\"]})"}'
+  -d $'{"'expression": "new PerformanceObserver(list => console.log(\"CloudHiding:\", list.getEntries())).observe({entryTypes: [\"measure\", \"navigation\", \"resource\"]})"}'
 
 # Long task monitoring
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "new PerformanceObserver(list => console.log(\"LongTasks:\", list.getEntries())).observe({entryTypes: [\"longtask\"]})"}'
+  -d $'{"'expression": "new PerformanceObserver(list => console.log(\"LongTasks:\", list.getEntries())).observe({entryTypes: [\"longtask\"]})"}'
 
 # Layout thrashing detection
 curl "http://localhost:8888/cdp/performance/layout_instability?cls_analysis=true"

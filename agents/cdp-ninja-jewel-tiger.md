@@ -73,34 +73,34 @@ The Jewel Tiger school masters surgical precision in DOM targeting and manipulat
 # Element queries - ALWAYS QUOTE URLs with query params
 curl -X POST "http://localhost:8888/cdp/dom/query" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".submit-btn", "all": false}'
+  -d $'{"'selector": ".submit-btn", "all": false}'
 
 # Multiple selector strategies for difficult elements
 curl -X POST "http://localhost:8888/cdp/dom/query" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "button[type=\"submit\"]", "all": true}'
+  -d $'{"'selector": "button[type=\"submit\"]", "all": true}'
 
 curl -X POST "http://localhost:8888/cdp/dom/query" \
   -H "Content-Type: application/json" \
-  -d '{"xpath": "//button[contains(text(), \"Submit\")]", "all": false}'
+  -d $'{"'xpath": "//button[contains(text(), \"Submit\")]", "all": false}'
 
 # Element state and properties
 curl -X POST "http://localhost:8888/cdp/dom/get_attributes" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "#login-form input[name=\"email\"]"}'
+  -d $'{"'selector": "#login-form input[name=\"email\"]"}'
 
 curl -X POST "http://localhost:8888/cdp/dom/get_style" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".hidden-element", "computed": true}'
+  -d $'{"'selector": ".hidden-element", "computed": true}'
 
 # Element visibility and positioning
 curl -X POST "http://localhost:8888/cdp/dom/get_bounds" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".overlay-button"}'
+  -d $'{"'selector": ".overlay-button"}'
 
 curl -X POST "http://localhost:8888/cdp/dom/is_visible" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".modal-content"}'
+  -d $'{"'selector": ".modal-content"}'
 ```
 
 ### Form-Specific Operations
@@ -110,17 +110,17 @@ curl "http://localhost:8888/cdp/form/values?selector=#registration-form"
 
 curl -X POST "http://localhost:8888/cdp/form/validation" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "#contact-form"}'
+  -d $'{"'selector": "#contact-form"}'
 
 # Form field manipulation (observation mode - document changes)
 curl -X POST "http://localhost:8888/cdp/form/fill" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "#test-form", "data": {"email": "test@example.com", "name": "Test User"}}'
+  -d $'{"'selector": "#test-form", "data": {"email": "test@example.com", "name": "Test User"}}'
 
 # Form submission flow tracking
 curl -X POST "http://localhost:8888/cdp/form/submit" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "#login-form", "dryRun": true}'
+  -d $'{"'selector": "#login-form", "dryRun": true}'
 ```
 
 ### Advanced DOM Operations
@@ -128,31 +128,31 @@ curl -X POST "http://localhost:8888/cdp/form/submit" \
 # Shadow DOM access
 curl -X POST "http://localhost:8888/cdp/dom/shadow" \
   -H "Content-Type: application/json" \
-  -d '{"selector": "my-custom-element"}'
+  -d $'{"'selector": "my-custom-element"}'
 
 # Iframe content access
 curl -X POST "http://localhost:8888/cdp/dom/iframe" \
   -H "Content-Type: application/json" \
-  -d '{"frame": "payment-frame", "selector": ".card-input"}'
+  -d $'{"'frame": "payment-frame", "selector": ".card-input"}'
 
 # Dynamic content waiting
 curl -X POST "http://localhost:8888/cdp/dom/wait" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".loading-complete", "timeout": 5000}'
+  -d $'{"'selector": ".loading-complete", "timeout": 5000}'
 
 # Event listeners inspection
 curl -X POST "http://localhost:8888/cdp/dom/listeners" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".interactive-button"}'
+  -d $'{"'selector": ".interactive-button"}'
 
 # Element hierarchy and relationships
 curl -X POST "http://localhost:8888/cdp/dom/parent" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".error-message"}'
+  -d $'{"'selector": ".error-message"}'
 
 curl -X POST "http://localhost:8888/cdp/dom/siblings" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".form-field"}'
+  -d $'{"'selector": ".form-field"}'
 ```
 
 ### Critical Syntax Rules
@@ -307,12 +307,12 @@ Path: document.querySelector('my-input-component').shadowRoot.querySelector('inp
 # ARIA attribute inspection
 curl -X POST "http://localhost:8888/cdp/dom/get_attributes" \
   -H "Content-Type: application/json" \
-  -d '{"selector": ".interactive-element", "filter": "aria-*"}'
+  -d $'{"'selector": ".interactive-element", "filter": "aria-*"}'
 
 # Focus management analysis
 curl -X POST "http://localhost:8888/cdp/dom/focus_sequence" \
   -H "Content-Type: application/json" \
-  -d '{"container": ".modal-content"}'
+  -d $'{"'container": ".modal-content"}'
 ```
 
 ### Performance-Aware Targeting

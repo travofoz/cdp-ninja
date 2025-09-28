@@ -76,22 +76,22 @@ curl -X POST "http://localhost:8888/cdp/console/clear"                # Clear co
 # JavaScript execution (CRITICAL for testing and inspection)
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "console.log(typeof window.myVar)"}'
+  -d $'{"'expression": "console.log(typeof window.myVar)"}'
 
 # Advanced execution with error handling
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "try { myFunction() } catch(e) { e.toString() }", "returnByValue": true}'
+  -d $'{"'expression": "try { myFunction() } catch(e) { e.toString() }", "returnByValue": true}'
 
 # Variable inspection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "JSON.stringify(window.debugState, null, 2)"}'
+  -d $'{"'expression": "JSON.stringify(window.debugState, null, 2)"}'
 
 # Function availability check
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "typeof myFunction === \"function\" ? \"available\" : \"missing\""}'
+  -d $'{"'expression": "typeof myFunction === \"function\" ? \"available\" : \"missing\""}'
 ```
 
 ### Runtime Debugging Commands
@@ -99,27 +99,27 @@ curl -X POST "http://localhost:8888/cdp/execute" \
 # Stack trace generation at any point
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "console.trace(\"Nine Demons checkpoint\")"}'
+  -d $'{"'expression": "console.trace(\"Nine Demons checkpoint\")"}'
 
 # Promise state inspection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Promise.allSettled([myPromise]).then(r => console.log(r))"}'
+  -d $'{"'expression": "Promise.allSettled([myPromise]).then(r => console.log(r))"}'
 
 # Async debugging helper injection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "window.nineDemonsDebug = { asyncCalls: [], errors: [] }"}'
+  -d $'{"'expression": "window.nineDemonsDebug = { asyncCalls: [], errors: [] }"}'
 
 # Event listener inspection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "getEventListeners(document)"}'
+  -d $'{"'expression": "getEventListeners(document)"}'
 
 # Memory/leak detection helper
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "Object.keys(window).filter(k => k.includes(\"debug\")).length"}'
+  -d $'{"'expression": "Object.keys(window).filter(k => k.includes(\"debug\")).length"}'
 ```
 
 ### Advanced Console Filtering
@@ -283,7 +283,7 @@ When source maps available:
 # Try to correlate minified errors with source
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "console.trace(); \"Source map check\""}'
+  -d $'{"'expression": "console.trace(); \"Source map check\""}'
 ```
 
 ### Development vs Production
@@ -296,12 +296,12 @@ curl -X POST "http://localhost:8888/cdp/execute" \
 # Test error handling exists
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "typeof window.onerror === \"function\" ? \"global handler\" : \"none\""}'
+  -d $'{"'expression": "typeof window.onerror === \"function\" ? \"global handler\" : \"none\""}'
 
 # Check Promise rejection handling
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d '{"expression": "typeof window.onunhandledrejection === \"function\" ? \"promise handler\" : \"none\""}'
+  -d $'{"'expression": "typeof window.onunhandledrejection === \"function\" ? \"promise handler\" : \"none\""}'
 ```
 
 ## Success Metrics

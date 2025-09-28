@@ -25,6 +25,30 @@ cdp-ninja --bridge-port 8888 --cdp-port 9222 --debug
 curl http://localhost:8888/cdp/status
 ```
 
+## ⚠️ Important: curl JSON Escaping
+
+**curl is tricky with JSON escaping!** Most examples use `$'...'` bash syntax to handle quotes properly:
+
+```bash
+# ✅ CORRECT: Use $'...' for clean escaping
+curl -X POST http://localhost:8888/cdp/execute -H "Content-Type: application/json" -d $'{"code": "alert(\\"Hello!\\")"}'
+
+# ❌ WRONG: This becomes a mess with backslashes
+curl -X POST http://localhost:8888/cdp/execute -H "Content-Type: application/json" -d "{\"code\": \"alert(\\\"Hello!\\\")\"}"
+```
+
+**How `$'...'` works:**
+- `$'...'` enables ANSI-C quoting in bash
+- `\\"` inside `$'...'` becomes literal `"` in the JSON
+- Much cleaner than escaping every quote with backslashes
+
+**If curl escaping confuses you:**
+```python
+# Use Python requests for clean JSON
+import requests
+requests.post("http://localhost:8888/cdp/execute", json={"code": 'alert("Hello!")'})
+```
+
 ## Core Concepts
 
 CDP Ninja acts as a transparent HTTP-to-WebSocket bridge:
