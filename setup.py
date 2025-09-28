@@ -5,7 +5,6 @@ Lightweight Chrome DevTools Protocol bridge for browser debugging
 
 from setuptools import setup, find_packages
 from pathlib import Path
-from cdp_ninja._version import __version__
 
 # Read README for long description
 readme_path = Path(__file__).parent / "README.md"
@@ -36,7 +35,6 @@ except FileNotFoundError:
 
 setup(
     name="cdp-ninja",
-    version=__version__,
     author="CDP Ninja Contributors",
     author_email="dev@example.com",
     description="🥷 Lightweight Chrome DevTools Protocol bridge for browser debugging and security testing",
