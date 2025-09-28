@@ -76,13 +76,35 @@ CDP Ninja includes 9 specialized Claude Code debugging agents:
 
 ## Documentation
 
-| Section | Description |
-|---------|-------------|
-| **[API Reference](docs/usage/readme.md)** | Complete API documentation by domain |
-| **[System Commands](docs/usage/system.md)** | Shell execution, process info |
-| **[Browser Interaction](docs/usage/browser.md)** | Click, type, scroll, screenshots |
-| **[Network Monitoring](docs/usage/network.md)** | Request analysis, blocking, throttling |
-| **[Security Testing](docs/usage/security.md)** | XSS, SQLi, fuzzing examples |
+**📚 Auto-Generated from JSDoc Comments (65+ Endpoints)**
+
+| Section | Description | Endpoints |
+|---------|-------------|-----------|
+| **[API Reference](docs/usage/readme.md)** | Complete API documentation overview | All domains |
+| **[System Commands](docs/usage/system.md)** | Shell execution, process info | 4 endpoints |
+| **[Browser Interaction](docs/usage/browser.md)** | Click, type, scroll, screenshots | 6 endpoints |
+| **[Performance](docs/usage/performance.md)** | Memory analysis, profiling, Core Web Vitals | 10 endpoints |
+| **[Network Monitoring](docs/usage/network_intelligence.md)** | Request analysis, blocking, throttling | 4 endpoints |
+| **[Security Testing](docs/usage/security.md)** | XSS, SQLi, fuzzing examples | Manual examples |
+| **[DOM Operations](docs/usage/dom.md)** | Element queries, manipulation | 6 endpoints |
+| **[Advanced DOM](docs/usage/dom_advanced.md)** | Shadow DOM, complex queries | 5 endpoints |
+| **[Page Navigation](docs/usage/navigation.md)** | Navigation, viewport, cookies | 9 endpoints |
+| **[Stress Testing](docs/usage/stress_testing.md)** | Memory bombs, CPU burn | 2 endpoints |
+| **[Error Handling](docs/usage/error_handling.md)** | Exception testing, recovery | 8 endpoints |
+| **[Debugging](docs/usage/debugging.md)** | Advanced debugging workflows | 9 endpoints |
+| **[JavaScript](docs/usage/js_debugging.md)** | Code execution, async debugging | 2 endpoints |
+
+### Build Documentation
+```bash
+# Auto-generate docs from JSDoc comments
+make docs
+
+# Or run directly
+python3 scripts/extract_docs.py
+
+# Or as installed command
+cdp-ninja-docs
+```
 
 ## CLI Commands
 

@@ -66,6 +66,7 @@ Documentation = "https://github.com/travofoz/cdp-ninja/wiki"
 [project.scripts]
 cdp-ninja = "cdp_ninja.server:main"
 cdp-ninja-setup = "cdp_ninja.setup.install:main"
+cdp-ninja-docs = "scripts.extract_docs:main"
 
 [tool.setuptools.packages.find]
 include = ["cdp_ninja*"]
