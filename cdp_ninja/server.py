@@ -28,7 +28,8 @@ from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes
 # Import deployment modules
 from cdp_ninja.deployment.cli import (
     handle_usage, handle_install_agents, handle_install_deps,
-    handle_tunnel, handle_kill_tunnels, handle_start_browser, handle_invoke_claude, handle_shell
+    handle_tunnel, handle_kill_tunnels, handle_start_browser, handle_invoke_claude, handle_shell,
+    configure_domain_manager, handle_list_domains, handle_domain_status, handle_health_check
 )
 from cdp_ninja.deployment.platforms import detect_local_platform, detect_remote_platform
 from cdp_ninja.deployment.ssh_utils import verify_ssh_access_remote, check_remote_dependencies, setup_ssh_tunnel, start_claude_interface
@@ -905,6 +906,40 @@ def main():
     parser.add_argument('--timeout', type=int, default=900,
                        help='Chrome command timeout in seconds (default: 900)')
 
+    # Domain loading and risk control
+    parser.add_argument('--max-risk-level', choices=['safe', 'low', 'medium', 'high', 'very_high'], default='medium',
+                       help='Maximum risk level for domain loading (default: medium)')
+    parser.add_argument('--eager-load-domains', action='store_true',
+                       help='Enable all allowed domains immediately on startup')
+    parser.add_argument('--lazy-load-domains', action='store_true',
+                       help='Enable domains only when needed (default behavior)')
+    parser.add_argument('--enable-domains', type=str, metavar='DOMAIN,DOMAIN',
+                       help='Comma-separated list of specific domains to enable')
+    parser.add_argument('--disable-auto-unload', action='store_true',
+                       help='Disable automatic domain unloading after timeout')
+    parser.add_argument('--domain-timeout', type=int, metavar='MINUTES',
+                       help='Timeout in minutes for domain auto-unloading')
+
+    # Server control
+    parser.add_argument('--bind-host', type=str, default='127.0.0.1',
+                       help='Host address to bind the server (default: 127.0.0.1)')
+    parser.add_argument('--max-connections', type=int, default=5,
+                       help='Maximum number of CDP connections (default: 5)')
+    parser.add_argument('--enable-cors', action='store_true',
+                       help='Enable CORS for remote access')
+    parser.add_argument('--log-level', choices=['debug', 'info', 'warning', 'error'], default='info',
+                       help='Set logging level (default: info)')
+    parser.add_argument('--version', action='store_true',
+                       help='Show version information and exit')
+
+    # Diagnostic and monitoring
+    parser.add_argument('--list-domains', action='store_true',
+                       help='List all available domains with risk levels')
+    parser.add_argument('--domain-status', action='store_true',
+                       help='Show current domain status and exit')
+    parser.add_argument('--health-check', action='store_true',
+                       help='Perform health check on CDP bridge')
+
     # Phase 4 deployment action arguments
     parser.add_argument('--usage', action='store_true',
                        help='Output complete API documentation')
@@ -928,6 +963,25 @@ def main():
                        help='Show manual instructions instead of executing deployment actions')
 
     args = parser.parse_args()
+
+    # Handle version flag first
+    if args.version:
+        from ._version import __version__
+        print(f"CDP Ninja v{__version__}")
+        sys.exit(0)
+
+    # Handle diagnostic flags
+    if args.list_domains:
+        handle_list_domains(args)
+        sys.exit(0)
+
+    if args.domain_status:
+        handle_domain_status(args)
+        sys.exit(0)
+
+    if args.health_check:
+        result = handle_health_check(args)
+        sys.exit(0 if result else 1)
 
     # Handle action flags first - execute action and exit
     if args.usage:
@@ -965,6 +1019,9 @@ def main():
             pass
         else:
             sys.exit(0)
+
+    # Configure domain manager based on CLI arguments
+    domain_manager = configure_domain_manager(args)
 
     # No action flags provided - start server (backward compatible)
     print("🥷 CDP Ninja Server")

@@ -5,7 +5,8 @@ include requirements.txt
 include pyproject.toml
 
 recursive-include setup *.ps1 *.sh
-recursive-include agent *.md
+recursive-include agents *.md
+recursive-include docs *.md
 recursive-include examples *.py
 recursive-include cdp_ninja *.py
 

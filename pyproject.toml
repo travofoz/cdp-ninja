@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdp-ninja"
-version = "2.0.2"
+dynamic = ["version"]
 description = "🥷 Lightweight Chrome DevTools Protocol bridge for browser debugging and security testing"
 readme = "README.md"
 license = {text = "MIT"}
@@ -81,3 +81,6 @@ cdp_ninja = [
     "agent/*.md",
     "examples/*.py"
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "cdp_ninja._version.__version__"}

@@ -770,3 +770,146 @@ def show_install_deps_instructions(target_host, web_backend):
     print("   claude --version")
     print("   tmux -V")
     print(f"   {web_backend} --version")
+
+
+def configure_domain_manager(args):
+    """Configure domain manager based on CLI arguments"""
+    import sys
+    import time
+    from ..core.domain_manager import DomainRiskLevel, CDPDomain, initialize_domain_manager
+
+    risk_level_map = {
+        'safe': DomainRiskLevel.SAFE,
+        'low': DomainRiskLevel.LOW,
+        'medium': DomainRiskLevel.MEDIUM,
+        'high': DomainRiskLevel.HIGH,
+        'very_high': DomainRiskLevel.VERY_HIGH
+    }
+
+    if args.max_risk_level not in risk_level_map:
+        print(f"❌ Invalid risk level: {args.max_risk_level}")
+        sys.exit(1)
+
+    max_risk = risk_level_map[args.max_risk_level]
+    domain_manager = initialize_domain_manager(max_risk)
+
+    # Handle domain loading strategy
+    if args.eager_load_domains and args.lazy_load_domains:
+        print("⚠️ Warning: Both --eager-load-domains and --lazy-load-domains specified")
+        print("Using eager loading")
+
+    if args.eager_load_domains:
+        enabled_count = domain_manager.enable_all_allowed_domains()
+        print(f"✅ Eager loading enabled {enabled_count} domains")
+
+    if args.disable_auto_unload:
+        domain_manager.set_auto_unload_enabled(False)
+        print("🔒 Auto-unload disabled")
+
+    if args.domain_timeout:
+        domain_manager.set_default_timeout(args.domain_timeout)
+        print(f"⏱️ Domain timeout set to {args.domain_timeout} minutes")
+
+    if args.enable_domains:
+        domain_names = [name.strip().upper() for name in args.enable_domains.split(',')]
+        for domain_name in domain_names:
+            try:
+                domain = CDPDomain[domain_name]
+                if domain_manager.ensure_domain(domain, "cli_explicit"):
+                    print(f"✅ Enabled domain: {domain_name}")
+                else:
+                    print(f"❌ Failed to enable domain: {domain_name}")
+            except KeyError:
+                print(f"❌ Unknown domain: {domain_name}")
+
+    return domain_manager
+
+
+def handle_list_domains(args):
+    """List all available domains with risk levels"""
+    from ..core.domain_manager import CDPDomain, DomainManager, DomainRiskLevel
+
+    print("🥷 Available CDP Domains:")
+    print("=" * 50)
+
+    for domain in CDPDomain:
+        config = DomainManager.DOMAIN_CONFIGS.get(domain)
+        if config:
+            risk_color = {
+                DomainRiskLevel.SAFE: "🟢",
+                DomainRiskLevel.LOW: "🟡",
+                DomainRiskLevel.MEDIUM: "🟠",
+                DomainRiskLevel.HIGH: "🔴",
+                DomainRiskLevel.VERY_HIGH: "🚨"
+            }.get(config.risk_level, "❓")
+
+            auto_unload = f" (auto-unload: {config.auto_unload_timeout}m)" if config.auto_unload_timeout else ""
+            enable_req = "" if config.requires_enable else " (no enable required)"
+
+            print(f"{risk_color} {domain.value:<15} - {config.risk_level.value}{auto_unload}{enable_req}")
+
+
+def handle_domain_status(args):
+    """Show current domain status"""
+    import time
+    from ..core.domain_manager import get_domain_manager
+
+    domain_manager = get_domain_manager()
+    status = domain_manager.get_domain_status()
+
+    print("🥷 Current Domain Status:")
+    print("=" * 50)
+    print(f"Max Risk Level: {status['max_risk_level']}")
+    print(f"Enabled Domains: {len(status['enabled_domains'])}")
+
+    if status['enabled_domains']:
+        print("\nEnabled:")
+        for domain in status['enabled_domains']:
+            details = status['domain_details'][domain]
+            last_used = details['last_used']
+            age = f"{(time.time() - last_used) / 60:.1f}m ago" if last_used > 0 else "never"
+            enabled_by = ", ".join(details['enabled_by']) if details['enabled_by'] else "unknown"
+            print(f"  ✅ {domain} - used {age} by {enabled_by}")
+
+    disabled_count = len([d for d in status['domain_details'] if not status['domain_details'][d]['enabled']])
+    if disabled_count > 0:
+        print(f"\nDisabled: {disabled_count} domains")
+
+
+def handle_health_check(args):
+    """Perform health check on CDP bridge"""
+    from ..core.cdp_pool import get_global_pool
+    from ..core.domain_manager import get_domain_manager
+
+    print("🏥 CDP Ninja Health Check")
+    print("=" * 30)
+
+    try:
+        # Check CDP client connection
+        global_pool = get_global_pool()
+        if global_pool:
+            print("✅ Global CDP pool: Available")
+
+            # Try to get a connection
+            conn = global_pool.acquire()
+            if conn:
+                print("✅ CDP connection: Active")
+                global_pool.release(conn)
+            else:
+                print("❌ CDP connection: Failed to acquire")
+        else:
+            print("❌ Global CDP pool: Not initialized")
+
+        # Check domain manager
+        domain_manager = get_domain_manager()
+        status = domain_manager.get_domain_status()
+        enabled_count = len(status['enabled_domains'])
+        print(f"✅ Domain manager: {enabled_count} domains enabled")
+
+        print("\n🎯 Overall Status: Healthy")
+
+    except Exception as e:
+        print(f"❌ Health check failed: {e}")
+        return False
+
+    return True

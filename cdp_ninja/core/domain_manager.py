@@ -111,6 +111,8 @@ class DomainManager:
         self.cdp_client = None  # Set by pool when needed
         self._lock = Lock()
         self.enabled_domains: Set[CDPDomain] = set()
+        self.auto_unload_enabled = True  # Can be disabled via CLI
+        self.default_timeout_minutes = 15  # Default timeout for domains
 
         # Initialize domain states
         for domain in CDPDomain:
@@ -326,6 +328,27 @@ class DomainManager:
                 for domain in to_disable:
                     self.disable_domain(domain, force=True)
                     logger.info(f"Disabled {domain.value} due to reduced risk tolerance")
+
+    def set_auto_unload_enabled(self, enabled: bool):
+        """Enable or disable automatic domain unloading"""
+        self.auto_unload_enabled = enabled
+        logger.info(f"Auto-unload {'enabled' if enabled else 'disabled'}")
+
+    def set_default_timeout(self, timeout_minutes: int):
+        """Set default timeout for domains without specific timeouts"""
+        self.default_timeout_minutes = timeout_minutes
+        logger.info(f"Default domain timeout set to {timeout_minutes} minutes")
+
+    def enable_all_allowed_domains(self):
+        """Enable all domains that are allowed by current risk level (eager loading)"""
+        enabled_count = 0
+        for domain in CDPDomain:
+            if self.can_enable_domain(domain):
+                if self.ensure_domain(domain, "eager_load"):
+                    enabled_count += 1
+
+        logger.info(f"Eager loading: enabled {enabled_count} domains")
+        return enabled_count
 
 
 # Global domain manager instance
