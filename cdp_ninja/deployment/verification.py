@@ -18,8 +18,8 @@ def verify_remote_installations(target_host, web_backend):
 
     for tool in tools:
         try:
-            # Use login shell to load user's PATH (nvm, etc.)
-            cmd = f'bash -l -c "which {tool}"'
+            # Source shell environment to find tools in PATH (like nvm-installed claude)
+            cmd = f'source ~/.zshrc 2>/dev/null || source ~/.bashrc 2>/dev/null || true; which {tool}'
             result = subprocess.run(
                 ['ssh', target_host, cmd],
                 capture_output=True, text=True, timeout=10
