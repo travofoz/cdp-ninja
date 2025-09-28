@@ -207,44 +207,55 @@ def handle_kill_tunnels():
 
     try:
         if platform.system() == "Windows":
-            # Find SSH tunnel processes on Windows (specifically looking for -R 8888 tunnels)
-            result = subprocess.run(
-                ['wmic', 'process', 'where', 'name="ssh.exe"', 'get', 'processid,commandline', '/format:csv'],
-                capture_output=True, text=True, timeout=10
-            )
+            # Find SSH tunnel processes on Windows using PowerShell (more reliable than wmic)
+            powershell_cmd = [
+                'powershell', '-Command',
+                'Get-WmiObject Win32_Process | Where-Object {$_.Name -eq "ssh.exe" -and $_.CommandLine -like "*-R*" -and $_.CommandLine -like "*127.0.0.1*"} | Select-Object ProcessId,CommandLine | ConvertTo-Json'
+            ]
 
-            if result.returncode == 0:
-                tunnel_pids = []
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
-                    # Look for lines containing CDP Ninja reverse tunnel patterns (-R port:127.0.0.1:port)
-                    if 'ssh.exe' in line and '-R' in line and '127.0.0.1' in line:
-                        # CSV format: Node,CommandLine,ProcessId
-                        parts = line.split(',')
-                        if len(parts) >= 3:
-                            pid = parts[-1].strip()  # ProcessId is last column
-                            if pid.isdigit():
-                                tunnel_pids.append(pid)
-                                # Show what we found
-                                command = parts[1] if len(parts) > 1 else "unknown"
-                                print(f"🎯 Found CDP tunnel: PID {pid} ({command[:50]}...)")
+            result = subprocess.run(powershell_cmd, capture_output=True, text=True, timeout=10)
 
-                for pid in tunnel_pids:
-                    try:
-                        kill_result = subprocess.run(
-                            ['taskkill', '/F', '/PID', pid],
-                            capture_output=True, text=True, timeout=5
-                        )
-                        if kill_result.returncode == 0:
-                            print(f"✅ Killed SSH tunnel (PID {pid})")
-                            killed_count += 1
-                        else:
-                            print(f"❌ Failed to kill PID {pid}: {kill_result.stderr}")
-                    except Exception as e:
-                        print(f"❌ Error killing PID {pid}: {e}")
+            if result.returncode == 0 and result.stdout.strip():
+                import json
+                try:
+                    # Parse JSON output from PowerShell
+                    processes = json.loads(result.stdout.strip())
 
-                if not tunnel_pids:
+                    # Handle single process (not in array) vs multiple processes (in array)
+                    if isinstance(processes, dict):
+                        processes = [processes]
+
+                    tunnel_pids = []
+                    for process in processes:
+                        pid = str(process.get('ProcessId', ''))
+                        command = process.get('CommandLine', '')
+                        if pid.isdigit():
+                            tunnel_pids.append(pid)
+                            print(f"🎯 Found CDP tunnel: PID {pid}")
+                            print(f"   Command: {command[:80]}...")
+
+                    for pid in tunnel_pids:
+                        try:
+                            kill_result = subprocess.run(
+                                ['taskkill', '/F', '/PID', pid],
+                                capture_output=True, text=True, timeout=5
+                            )
+                            if kill_result.returncode == 0:
+                                print(f"✅ Killed SSH tunnel (PID {pid})")
+                                killed_count += 1
+                            else:
+                                print(f"❌ Failed to kill PID {pid}: {kill_result.stderr}")
+                        except Exception as e:
+                            print(f"❌ Error killing PID {pid}: {e}")
+
+                    if not tunnel_pids:
+                        print("💡 No CDP Ninja SSH tunnels found")
+
+                except json.JSONDecodeError as e:
+                    print(f"❌ Error parsing PowerShell output: {e}")
                     print("💡 No CDP Ninja SSH tunnels found")
+            else:
+                print("💡 No CDP Ninja SSH tunnels found")
 
         else:
             # Find SSH tunnel processes on Linux/Mac
