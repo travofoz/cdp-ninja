@@ -242,9 +242,7 @@ def handle_kill_tunnels():
                             if len(parts) >= 2:
                                 # Hostname is typically the last argument
                                 hostname = parts[-1]
-                                # Remove user@ prefix if present
-                                if '@' in hostname:
-                                    hostname = hostname.split('@')[1]
+                                # Keep user@host format for proper authentication
                                 remote_hosts.add(hostname)
 
                     for pid in tunnel_pids:
@@ -293,9 +291,9 @@ def handle_kill_tunnels():
                             for i, part in enumerate(parts):
                                 if 'ssh' in parts[i-1] if i > 0 else False:
                                     continue
-                                if not part.startswith('-') and '.' in part:
-                                    hostname = part.split('@')[-1] if '@' in part else part
-                                    remote_hosts.add(hostname)
+                                if not part.startswith('-') and ('.' in part or '@' in part):
+                                    # Keep user@host format for proper authentication
+                                    remote_hosts.add(part)
                                     break
 
                 for pid in tunnel_pids:
