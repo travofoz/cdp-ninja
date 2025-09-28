@@ -11,7 +11,7 @@ from queue import Queue, Empty
 from typing import Optional, Dict, Any
 
 from .cdp_client import CDPClient
-from .domain_manager import initialize_domain_manager, shutdown_domain_manager, DomainRiskLevel
+from .domain_manager import initialize_domain_manager, shutdown_domain_manager, DomainRiskLevel, get_domain_manager
 
 logger = logging.getLogger(__name__)
 
