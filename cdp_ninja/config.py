@@ -64,7 +64,6 @@ class CDPNinjaConfig:
         print(f"   CDP Port: {self.cdp_port}")
         print(f"   Bridge Port: {self.bridge_port}")
         print(f"   Bind Host: {self.bind_host}")
-        print(f"   Shell Execution: {'ENABLED' if self.enable_shell_execution else 'DISABLED'}")
         print(f"   Max Events: {self.max_events}")
         print()
 
