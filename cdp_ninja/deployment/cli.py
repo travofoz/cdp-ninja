@@ -414,11 +414,7 @@ def handle_start_browser():
     if user_data_dir:
         browser_cmd.append(f'--user-data-dir={user_data_dir}')
 
-    # Additional flags for automation
-    browser_cmd.extend([
-        '--disable-web-security',  # For testing
-        '--disable-features=VizDisplayCompositor',  # Stability
-    ])
+    # Keep it clean - just the essential CDP flags
 
     print(f"🚀 Launching browser...")
     print(f"   Command: {' '.join(browser_cmd)}")
