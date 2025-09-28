@@ -237,10 +237,15 @@ def handle_kill_tunnels():
                             print(f"   Command: {command[:80]}...")
 
                             # Extract remote host from command for cleanup
-                            # Pattern: ssh ... user@host or ssh ... host
-                            host_match = re.search(r'ssh.*?(?:[-\w]+@)?([\w\.-]+)', command)
-                            if host_match:
-                                remote_hosts.add(host_match.group(1))
+                            # Pattern: ssh [flags] user@host or ssh [flags] host (hostname is always last)
+                            parts = command.split()
+                            if len(parts) >= 2:
+                                # Hostname is typically the last argument
+                                hostname = parts[-1]
+                                # Remove user@ prefix if present
+                                if '@' in hostname:
+                                    hostname = hostname.split('@')[1]
+                                remote_hosts.add(hostname)
 
                     for pid in tunnel_pids:
                         try:
@@ -283,9 +288,15 @@ def handle_kill_tunnels():
                             tunnel_pids.append(pid)
 
                             # Extract remote host from command for cleanup
-                            host_match = re.search(r'ssh.*?(?:[-\w]+@)?([\w\.-]+)', line)
-                            if host_match:
-                                remote_hosts.add(host_match.group(1))
+                            parts = line.split()
+                            # Find hostname (usually after ssh command and flags)
+                            for i, part in enumerate(parts):
+                                if 'ssh' in parts[i-1] if i > 0 else False:
+                                    continue
+                                if not part.startswith('-') and '.' in part:
+                                    hostname = part.split('@')[-1] if '@' in part else part
+                                    remote_hosts.add(hostname)
+                                    break
 
                 for pid in tunnel_pids:
                     try:
@@ -317,10 +328,10 @@ def handle_kill_tunnels():
         for host in remote_hosts:
             try:
                 print(f"   🎯 Cleaning {host}...")
-                # Kill SSH daemons bound to our tunnel ports (8888-8899 range)
+                # Find PIDs bound to tunnel ports and kill them
                 cleanup_cmd = [
                     'ssh', host,
-                    'for port in $(seq 8888 8899); do pkill -f "sshd.*$port" 2>/dev/null || true; done'
+                    'for port in $(seq 8888 8899); do ss -tlnp | grep ":$port " | sed -n "s/.*pid=\\([0-9]*\\).*/\\1/p" | xargs -r kill 2>/dev/null || true; done'
                 ]
                 result = subprocess.run(cleanup_cmd, capture_output=True, text=True, timeout=15)
 
