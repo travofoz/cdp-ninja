@@ -196,6 +196,105 @@ def handle_shell():
     return 'start_server_with_shell'  # Signal to start server with shell enabled
 
 
+def handle_kill_tunnels():
+    """Kill all active SSH tunnels for CDP Ninja"""
+    import subprocess
+    import platform
+
+    print("🔪 Killing all active SSH tunnels...")
+
+    killed_count = 0
+
+    try:
+        if platform.system() == "Windows":
+            # Find SSH tunnel processes on Windows (specifically looking for -R 8888 tunnels)
+            result = subprocess.run(
+                ['wmic', 'process', 'where', 'name="ssh.exe"', 'get', 'processid,commandline', '/format:csv'],
+                capture_output=True, text=True, timeout=10
+            )
+
+            if result.returncode == 0:
+                tunnel_pids = []
+                lines = result.stdout.strip().split('\n')
+                for line in lines:
+                    # Look for lines containing CDP Ninja reverse tunnel patterns (-R port:127.0.0.1:port)
+                    if 'ssh.exe' in line and '-R' in line and '127.0.0.1' in line:
+                        # CSV format: Node,CommandLine,ProcessId
+                        parts = line.split(',')
+                        if len(parts) >= 3:
+                            pid = parts[-1].strip()  # ProcessId is last column
+                            if pid.isdigit():
+                                tunnel_pids.append(pid)
+                                # Show what we found
+                                command = parts[1] if len(parts) > 1 else "unknown"
+                                print(f"🎯 Found CDP tunnel: PID {pid} ({command[:50]}...)")
+
+                for pid in tunnel_pids:
+                    try:
+                        kill_result = subprocess.run(
+                            ['taskkill', '/F', '/PID', pid],
+                            capture_output=True, text=True, timeout=5
+                        )
+                        if kill_result.returncode == 0:
+                            print(f"✅ Killed SSH tunnel (PID {pid})")
+                            killed_count += 1
+                        else:
+                            print(f"❌ Failed to kill PID {pid}: {kill_result.stderr}")
+                    except Exception as e:
+                        print(f"❌ Error killing PID {pid}: {e}")
+
+                if not tunnel_pids:
+                    print("💡 No CDP Ninja SSH tunnels found")
+
+        else:
+            # Find SSH tunnel processes on Linux/Mac
+            result = subprocess.run(
+                ['ps', 'aux'],
+                capture_output=True, text=True, timeout=10
+            )
+
+            if result.returncode == 0:
+                tunnel_pids = []
+                for line in result.stdout.split('\n'):
+                    # Look for SSH processes with CDP Ninja reverse tunnel pattern (-R port:127.0.0.1:port)
+                    if 'ssh' in line and '-R' in line and '127.0.0.1' in line:
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            pid = parts[1]
+                            tunnel_pids.append(pid)
+
+                for pid in tunnel_pids:
+                    try:
+                        kill_result = subprocess.run(
+                            ['kill', pid],
+                            capture_output=True, text=True, timeout=5
+                        )
+                        if kill_result.returncode == 0:
+                            print(f"✅ Killed SSH tunnel (PID {pid})")
+                            killed_count += 1
+                        else:
+                            print(f"❌ Failed to kill PID {pid}: {kill_result.stderr}")
+                    except Exception as e:
+                        print(f"❌ Error killing PID {pid}: {e}")
+
+                if not tunnel_pids:
+                    print("💡 No SSH tunnels found")
+
+    except subprocess.TimeoutExpired:
+        print("❌ Timeout while searching for SSH tunnels")
+        return False
+    except Exception as e:
+        print(f"❌ Error searching for SSH tunnels: {e}")
+        return False
+
+    if killed_count > 0:
+        print(f"\n🎉 Successfully killed {killed_count} SSH tunnel(s)")
+    else:
+        print("\n💡 No SSH tunnels were running")
+
+    return True
+
+
 # Helper functions for agent installation
 def install_agents_local(target_path, agents_dir):
     """Install agents to local path with conflict resolution"""
