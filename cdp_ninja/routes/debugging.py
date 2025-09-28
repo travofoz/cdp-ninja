@@ -42,14 +42,26 @@ def execute_javascript():
     {"code": "fetch('/api/data')", "await": true, "timeout": 5000}
     """
     try:
-        data = request.get_json() or {}
-        code = data.get('code', '')  # Could be empty, huge, malicious - we don't care
+        # Try JSON first, fallback to raw text for easier usage
+        try:
+            data = request.get_json()
+            if data:
+                code = data.get('code', '')
+                await_promise = data.get('await', False)
+                timeout = data.get('timeout', 30000)
+                return_by_value = data.get('return_by_value', False)
+            else:
+                raise ValueError("No JSON data")
+        except (ValueError, TypeError):
+            # Fallback: treat entire request body as raw JavaScript code
+            code = request.get_data(as_text=True)
+            await_promise = False
+            timeout = 30000
+            return_by_value = False
+            logger.debug("Using raw text fallback for JavaScript code")
 
         # Debug: log what we actually received
         logger.debug(f"Received code: {repr(code)}")
-        await_promise = data.get('await', False)
-        timeout = data.get('timeout', 30000)  # User-controlled timeout
-        return_by_value = data.get('return_by_value', False)
 
         pool = get_global_pool()
         cdp = pool.acquire(timeout=timeout/1000)
@@ -78,13 +90,15 @@ def execute_javascript():
             pool.release(cdp)
 
     except Exception as e:
+        # Handle case where data wasn't set due to JSON parsing failure
+        safe_data = locals().get('data', {})
         crash_data = crash_reporter.report_crash(
             operation="execute_javascript",
             error=e,
             request_data={
-                'code_length': len(data.get('code', '')),
-                'code_preview': data.get('code', '')[:100],
-                'timeout': data.get('timeout')
+                'code_length': len(safe_data.get('code', '')),
+                'code_preview': safe_data.get('code', '')[:100],
+                'timeout': safe_data.get('timeout')
             }
         )
 
@@ -92,8 +106,8 @@ def execute_javascript():
             "crash": True,
             "error": str(e),
             "error_type": type(e).__name__,
-            "code_length": len(data.get('code', '')),
-            "code_preview": data.get('code', '')[:100],
+            "code_length": len(safe_data.get('code', '')),
+            "code_preview": safe_data.get('code', '')[:100],
             "crash_id": crash_data.get('timestamp'),
             "possible_causes": [
                 "Infinite loop",
