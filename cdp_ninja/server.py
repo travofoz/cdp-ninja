@@ -49,8 +49,7 @@ from cdp_ninja.interaction.mouse import execute_mouse_drag
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Import shell execution flag from CLI module
-from cdp_ninja.deployment.cli import SHELL_ENABLED
+# Shell execution flag will be checked dynamically
 
 
 # Domain-specific functions moved to respective modules:
@@ -974,9 +973,8 @@ def main():
     print(f"Bridge API Port: {args.bridge_port}")
     print(f"Debug Mode: {args.debug}")
 
-    # Enable shell execution if --shell flag was used
-    if SHELL_ENABLED:
-        config.enable_shell_execution = True
+    # Shell execution status (set by --shell flag via handle_shell())
+    if config.enable_shell_execution:
         print(f"Shell Execution: ENABLED (POST /system/execute)")
     else:
         print(f"Shell Execution: DISABLED")

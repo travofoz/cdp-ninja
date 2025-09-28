@@ -184,6 +184,7 @@ def handle_invoke_claude(target_host, web_backend, instruct_only=False):
 def handle_shell():
     """Enable shell execution capabilities on the bridge"""
     global SHELL_ENABLED
+    from cdp_ninja.config import config
 
     print("🐚 Enabling shell execution endpoint...")
     print("⚠️  Warning: Remote shell execution will be enabled")
@@ -191,6 +192,9 @@ def handle_shell():
 
     # Set global flag to enable shell routes
     SHELL_ENABLED = True
+
+    # Directly enable shell execution in config
+    config.enable_shell_execution = True
 
     print("✅ Shell execution enabled - starting server")
     return 'start_server_with_shell'  # Signal to start server with shell enabled
