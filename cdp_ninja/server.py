@@ -22,6 +22,7 @@ import psutil
 # Import our CDP client
 from cdp_ninja.core.cdp_client import CDPClient, CDPEvent
 from cdp_ninja.core.cdp_pool import CDPConnectionPool, get_global_pool, initialize_global_pool, shutdown_global_pool
+from cdp_ninja.core.domain_manager import DomainRiskLevel
 from cdp_ninja.config import config
 from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes, dom_routes, dom_advanced_routes, network_intelligence_routes, js_debugging_routes, stress_testing_routes, system_routes, error_handling_routes, performance_routes, security_routes, accessibility_routes, stress_testing_advanced_routes
 
@@ -63,7 +64,8 @@ logger = logging.getLogger(__name__)
 class CDPBridgeServer:
     """Main API server for CDP Bridge"""
 
-    def __init__(self, cdp_port: int = 9222, bridge_port: int = 8888, debug: bool = False, timeout: int = 900):
+    def __init__(self, cdp_port: int = 9222, bridge_port: int = 8888, debug: bool = False, timeout: int = 900,
+                 max_risk_level=None, max_connections: int = 5):
         self.app = Flask(__name__)
         CORS(self.app)  # Enable CORS for remote access
 
@@ -71,6 +73,8 @@ class CDPBridgeServer:
         self.bridge_port = bridge_port
         self.debug = debug
         self.timeout = timeout
+        self.max_risk_level = max_risk_level
+        self.max_connections = max_connections
 
         # Server state
         self.start_time = datetime.now()
@@ -865,7 +869,8 @@ curl -X POST {request.host_url}cdp/click \\
             return False
 
         # Initialize global pool for blueprints
-        initialize_global_pool(max_connections=5, port=self.cdp.connection.port)
+        pool_risk_level = self.max_risk_level if self.max_risk_level else DomainRiskLevel.MEDIUM
+        initialize_global_pool(max_connections=self.max_connections, port=self.cdp.connection.port, max_risk_level=pool_risk_level)
 
         try:
             # Run Flask server
@@ -1043,7 +1048,9 @@ def main():
         cdp_port=args.cdp_port,
         bridge_port=args.bridge_port,
         debug=args.debug,
-        timeout=args.timeout
+        timeout=args.timeout,
+        max_risk_level=domain_manager.max_risk_level,
+        max_connections=getattr(args, 'max_connections', 5)
     )
 
     server.run()
