@@ -69,7 +69,8 @@ def setup_ssh_tunnel(target_host, bridge_port=8888, instruct_only=False):
         # Create reverse SSH tunnel (Windows laptop → VPS)
         tunnel_cmd = [
             'ssh', '-N',  # Remove -f flag for better Windows compatibility
-            '-R', f'{bridge_port}:localhost:{bridge_port}',
+            '-4',  # Force IPv4 to match CDP bridge binding
+            '-R', f'{bridge_port}:127.0.0.1:{bridge_port}',
             target_host
         ]
 
@@ -106,7 +107,7 @@ def setup_ssh_tunnel(target_host, bridge_port=8888, instruct_only=False):
             # Test tunnel by attempting connection from remote side
             test_cmd = [
                 'ssh', target_host,
-                f'curl -s http://localhost:{bridge_port}/health'
+                f'curl -s http://127.0.0.1:{bridge_port}/health'
             ]
 
             try:
@@ -144,11 +145,11 @@ def show_tunnel_instructions(target_host, bridge_port=8888):
     print("\n📖 Manual Reverse SSH Tunnel Setup Instructions")
     print("=" * 50)
     print(f"\n🔧 Create reverse tunnel to {target_host}:")
-    print(f"   ssh -fN -R {bridge_port}:localhost:{bridge_port} {target_host}")
+    print(f"   ssh -4 -fN -R {bridge_port}:127.0.0.1:{bridge_port} {target_host}")
 
     print(f"\n🌐 Access from {target_host}:")
-    print(f"   curl http://localhost:{bridge_port}/health")
-    print(f"   curl http://localhost:{bridge_port}/cdp/status")
+    print(f"   curl http://127.0.0.1:{bridge_port}/health")
+    print(f"   curl http://127.0.0.1:{bridge_port}/cdp/status")
 
     print(f"\n🔧 Kill tunnel (Windows):")
     print(f"   tasklist | findstr ssh")
@@ -164,7 +165,7 @@ def show_tunnel_instructions(target_host, bridge_port=8888):
     print(f"   ps aux | grep 'ssh.*-R.*{bridge_port}'")
 
     print(f"\n🧪 Test from {target_host}:")
-    print(f"   ssh {target_host} 'curl http://localhost:{bridge_port}/health'")
+    print(f"   ssh {target_host} 'curl http://127.0.0.1:{bridge_port}/health'")
 
     print(f"\n📊 How it works:")
     print(f"   • Your laptop runs CDP Ninja on localhost:{bridge_port}")

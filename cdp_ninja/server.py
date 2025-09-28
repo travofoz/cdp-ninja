@@ -870,7 +870,7 @@ curl -X POST {request.host_url}cdp/click \\
         try:
             # Run Flask server
             self.app.run(
-                host='127.0.0.1',  # Bind to localhost for SSH tunnel compatibility
+                host='127.0.0.1',  # IPv4 localhost for SSH tunnel compatibility
                 port=self.bridge_port,
                 debug=self.debug,
                 use_reloader=False
