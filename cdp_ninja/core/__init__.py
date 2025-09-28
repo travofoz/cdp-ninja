@@ -6,7 +6,7 @@ Chrome DevTools Protocol WebSocket client and event management
 from .cdp_client import CDPClient, CDPEvent, CDPDomain, CDPConnection
 from .cdp_pool import CDPConnectionPool, get_global_pool, initialize_global_pool, shutdown_global_pool
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __author__ = "CDP Ninja Contributors"
 
 __all__ = [
