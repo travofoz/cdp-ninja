@@ -475,8 +475,23 @@ CDP Ninja Project Structure:
 ### Phase 3 Bridge Implementation COMPLETE ✅
 The bridge architecture is clean and **89 endpoints are implemented** across all Nine Schools functional domains. Original planning anticipated ~90 total endpoints - we have achieved full coverage.
 
-### CDP Ninja v2.0.0 COMPLETE ✅
-All deployment features implemented:
+### CDP Ninja v2.0.3 COMPLETE ✅
+All deployment features and CLI flags implemented:
+- ✅ **14 CLI Arguments**: Complete CLI flag system with domain management
+- ✅ `--version` - Version information display
+- ✅ `--max-risk-level` - Domain loading risk management (safe/low/medium/high/very_high)
+- ✅ `--eager-load-domains` - Enable all allowed domains on startup
+- ✅ `--lazy-load-domains` - Default behavior, enable domains on demand
+- ✅ `--enable-domains` - Comma-separated list of specific domains
+- ✅ `--disable-auto-unload` - Prevent automatic domain cleanup
+- ✅ `--domain-timeout` - Configure domain timeout in minutes
+- ✅ `--bind-host` - Server binding configuration
+- ✅ `--max-connections` - CDP connection pool size
+- ✅ `--enable-cors` - Remote access configuration
+- ✅ `--log-level` - Logging verbosity control
+- ✅ `--list-domains` - Display available domains with risk levels
+- ✅ `--domain-status` - Show current domain status
+- ✅ `--health-check` - CDP bridge health verification
 - ✅ `--install-agents` - Remote agent deployment via SCP with conflict resolution
 - ✅ `--tunnel` - SSH tunnel automation with auto-detection
 - ✅ `--invoke-claude` - Remote Claude interface setup with ttyd/gotty
@@ -560,7 +575,8 @@ All deployment features implemented:
 
 **Release Tags:**
 - `v1.0.6` - Truly lite version (pre-Nine Schools)
-- `v2.0.0` - Full Nine Schools + Deployment toolkit + Refactored architecture + Tunnel fixes
+- `v2.0.2` - Full Nine Schools + Deployment toolkit + Refactored architecture + Tunnel fixes
+- `v2.0.3` - Complete CLI flag system + Domain management + Centralized versioning
 
 ---
 
