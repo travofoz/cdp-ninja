@@ -197,13 +197,15 @@ def handle_shell():
 
 
 def handle_kill_tunnels():
-    """Kill all active SSH tunnels for CDP Ninja"""
+    """Kill all active SSH tunnels for CDP Ninja (both local and remote sides)"""
     import subprocess
     import platform
+    import re
 
     print("🔪 Killing all active SSH tunnels...")
 
     killed_count = 0
+    remote_hosts = set()  # Track which hosts we need to clean up
 
     try:
         if platform.system() == "Windows":
@@ -233,6 +235,12 @@ def handle_kill_tunnels():
                             tunnel_pids.append(pid)
                             print(f"🎯 Found CDP tunnel: PID {pid}")
                             print(f"   Command: {command[:80]}...")
+
+                            # Extract remote host from command for cleanup
+                            # Pattern: ssh ... user@host or ssh ... host
+                            host_match = re.search(r'ssh.*?(?:[-\w]+@)?([\w\.-]+)', command)
+                            if host_match:
+                                remote_hosts.add(host_match.group(1))
 
                     for pid in tunnel_pids:
                         try:
@@ -274,6 +282,11 @@ def handle_kill_tunnels():
                             pid = parts[1]
                             tunnel_pids.append(pid)
 
+                            # Extract remote host from command for cleanup
+                            host_match = re.search(r'ssh.*?(?:[-\w]+@)?([\w\.-]+)', line)
+                            if host_match:
+                                remote_hosts.add(host_match.group(1))
+
                 for pid in tunnel_pids:
                     try:
                         kill_result = subprocess.run(
@@ -298,8 +311,33 @@ def handle_kill_tunnels():
         print(f"❌ Error searching for SSH tunnels: {e}")
         return False
 
+    # Clean up remote SSH daemons that might be holding ports
+    if remote_hosts:
+        print(f"\n🧹 Cleaning up remote SSH daemons on {len(remote_hosts)} host(s)...")
+        for host in remote_hosts:
+            try:
+                print(f"   🎯 Cleaning {host}...")
+                # Kill SSH daemons bound to our tunnel ports (8888-8899 range)
+                cleanup_cmd = [
+                    'ssh', host,
+                    'for port in $(seq 8888 8899); do pkill -f "sshd.*$port" 2>/dev/null || true; done'
+                ]
+                result = subprocess.run(cleanup_cmd, capture_output=True, text=True, timeout=15)
+
+                if result.returncode == 0:
+                    print(f"   ✅ Remote cleanup completed for {host}")
+                else:
+                    print(f"   ⚠️  Remote cleanup warning for {host}: {result.stderr.strip()}")
+
+            except subprocess.TimeoutExpired:
+                print(f"   ⚠️  Remote cleanup timeout for {host}")
+            except Exception as e:
+                print(f"   ⚠️  Remote cleanup failed for {host}: {e}")
+
     if killed_count > 0:
-        print(f"\n🎉 Successfully killed {killed_count} SSH tunnel(s)")
+        print(f"\n🎉 Successfully killed {killed_count} local SSH tunnel(s)")
+        if remote_hosts:
+            print(f"🧹 Cleaned up remote SSH daemons on {len(remote_hosts)} host(s)")
     else:
         print("\n💡 No SSH tunnels were running")
 
