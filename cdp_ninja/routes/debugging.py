@@ -247,6 +247,55 @@ def clear_console():
         }), 500
 
 
+@debugging_routes.route('/cdp/debug/events', methods=['GET'])
+def debug_events():
+    """DEBUG: Show all recent events to debug console log issue"""
+    try:
+        pool = get_global_pool()
+        cdp = pool.acquire()
+
+        try:
+            # Get all events from all domains
+            all_events = cdp.get_recent_events(None, 200)  # Get from general queue
+            console_events = cdp.get_recent_events('Console', 50)
+            runtime_events = cdp.get_recent_events('Runtime', 50)
+
+            debug_info = {
+                "total_events": len(all_events),
+                "console_events_count": len(console_events),
+                "runtime_events_count": len(runtime_events),
+                "domains_with_events": {},
+                "recent_methods": [],
+                "sample_events": []
+            }
+
+            # Analyze all events
+            domain_counts = {}
+            for event in all_events[-50:]:  # Last 50 events
+                domain = event.domain
+                domain_counts[domain] = domain_counts.get(domain, 0) + 1
+                debug_info["recent_methods"].append(event.method)
+
+                # Add sample events
+                if len(debug_info["sample_events"]) < 10:
+                    debug_info["sample_events"].append({
+                        "method": event.method,
+                        "domain": event.domain,
+                        "timestamp": event.timestamp,
+                        "params_keys": list(event.params.keys()) if event.params else []
+                    })
+
+            debug_info["domains_with_events"] = domain_counts
+
+            return jsonify(debug_info)
+
+        finally:
+            pool.release(cdp)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @debugging_routes.route('/cdp/network/requests', methods=['GET'])
 def get_network_requests():
     """
