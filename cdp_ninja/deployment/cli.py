@@ -143,23 +143,22 @@ def handle_install_deps(target_host, web_backend, instruct_only=False):
 
 
 def handle_tunnel(target_host, instruct_only=False):
-    """Setup SSH tunnels for remote access"""
+    """Setup reverse SSH tunnel for remote access to local CDP Ninja"""
     if instruct_only:
         show_tunnel_instructions(target_host)
         return True
 
-    print(f"🚇 Setting up SSH tunnel to: {target_host}")
+    print(f"🚇 Setting up reverse SSH tunnel to: {target_host}")
+    print("   This will expose your local CDP Ninja on the remote server")
 
-    # Auto-detect required ports from bridge configuration
-    cdp_port = 9222
+    # Only tunnel the bridge port - Chrome DevTools stays local
     bridge_port = 8888
-    web_port = 7979
 
-    success = setup_ssh_tunnel(target_host, cdp_port, bridge_port, web_port)
+    success = setup_ssh_tunnel(target_host, bridge_port)
 
     if not success:
         print("\n💡 Tunnel setup failed - showing manual instructions:")
-        show_tunnel_instructions(target_host)
+        show_tunnel_instructions(target_host, bridge_port)
 
     return success
 

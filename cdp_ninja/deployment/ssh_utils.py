@@ -53,59 +53,60 @@ def check_remote_dependencies(target_host):
     return existing
 
 
-def setup_ssh_tunnel(target_host, cdp_port=8888, web_port=7979, instruct_only=False):
-    """Setup SSH tunnels for remote access"""
+def setup_ssh_tunnel(target_host, bridge_port=8888, instruct_only=False):
+    """Setup reverse SSH tunnel for remote access to local CDP Ninja
+
+    Creates reverse tunnel (-R) so VPS can access Windows laptop's CDP bridge
+    """
     if instruct_only:
-        show_tunnel_instructions(target_host, cdp_port, web_port)
+        show_tunnel_instructions(target_host, bridge_port)
         return True
 
-    print(f"🔧 Setting up SSH tunnels to {target_host}...")
-
-    # Check if tunnels already exist
-    try:
-        result = subprocess.run(
-            ['pgrep', '-f', f'ssh.*-L.*{cdp_port}.*{target_host}'],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            print(f"⚠️  SSH tunnel for port {cdp_port} already exists")
-            return True
-    except Exception:
-        pass
+    print(f"🔧 Creating reverse SSH tunnel to {target_host}...")
+    print(f"   Exposing localhost:{bridge_port} → {target_host}:localhost:{bridge_port}")
 
     try:
-        # Create SSH tunnel
+        # Create reverse SSH tunnel (Windows laptop → VPS)
         tunnel_cmd = [
             'ssh', '-fN',
-            '-L', f'{cdp_port}:localhost:{cdp_port}',
-            '-L', f'{web_port}:localhost:{web_port}',
+            '-R', f'{bridge_port}:localhost:{bridge_port}',
             target_host
         ]
 
+        print(f"🚇 Executing: {' '.join(tunnel_cmd)}")
         result = subprocess.run(tunnel_cmd, capture_output=True, text=True, timeout=30)
 
         if result.returncode == 0:
-            print(f"✅ SSH tunnels established:")
-            print(f"   • {cdp_port} → CDP Bridge")
-            print(f"   • {web_port} → Web Terminal")
-            print(f"   Local access: http://localhost:{cdp_port}")
+            print(f"✅ Reverse SSH tunnel established!")
+            print(f"   • localhost:{bridge_port} → {target_host}:localhost:{bridge_port}")
 
-            # Test connection
-            import requests
+            # Wait a moment for tunnel to establish
+            import time
+            time.sleep(2)
+
+            print(f"\n🧪 Testing tunnel from {target_host}...")
+            # Test tunnel by attempting connection from remote side
+            test_cmd = [
+                'ssh', target_host,
+                f'curl -s http://localhost:{bridge_port}/health'
+            ]
+
             try:
-                response = requests.get(f'http://localhost:{cdp_port}/system/status', timeout=5)
-                if response.status_code == 200:
-                    print("✅ Tunnel verification successful")
+                test_result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
+                if test_result.returncode == 0 and 'ok' in test_result.stdout.lower():
+                    print("✅ Tunnel verification successful - CDP Ninja accessible from remote!")
+                    return True
                 else:
-                    print("⚠️  Tunnel created but service not responding")
+                    print("⚠️  Tunnel created but remote access test failed")
+                    print(f"   Test output: {test_result.stdout}")
+                    return True  # Tunnel exists, but service might not be ready
             except Exception as e:
-                print(f"⚠️  Tunnel created but verification failed: {e} (service may not be running)")
+                print(f"⚠️  Tunnel created but verification failed: {e}")
+                return True  # Tunnel exists, verification failed
 
-            print(f"\n🔧 To kill tunnel later: pkill -f 'ssh.*-L.*{cdp_port}'")
-            return True
         else:
             print(f"❌ Failed to create tunnel: {result.stderr}")
-            show_tunnel_instructions(target_host, cdp_port, web_port)
+            show_tunnel_instructions(target_host, bridge_port)
             return False
 
     except subprocess.TimeoutExpired:
@@ -116,27 +117,37 @@ def setup_ssh_tunnel(target_host, cdp_port=8888, web_port=7979, instruct_only=Fa
         return False
 
 
-def show_tunnel_instructions(target_host, cdp_port=8888, web_port=7979):
-    """Show manual instructions for SSH tunnel setup"""
-    print("\n📖 Manual SSH Tunnel Setup Instructions")
+def show_tunnel_instructions(target_host, bridge_port=8888):
+    """Show manual instructions for reverse SSH tunnel setup"""
+    print("\n📖 Manual Reverse SSH Tunnel Setup Instructions")
     print("=" * 50)
-    print(f"\n🔧 Create tunnels to {target_host}:")
-    print(f"   ssh -fN \\")
-    print(f"       -L {cdp_port}:localhost:{cdp_port} \\")
-    print(f"       -L {web_port}:localhost:{web_port} \\")
-    print(f"       {target_host}")
-    print(f"\n🌐 Local access:")
-    print(f"   • CDP Bridge: http://localhost:{cdp_port}")
-    print(f"   • Web Terminal: http://localhost:{web_port}")
-    print(f"\n🔧 Kill tunnels:")
-    print(f"   pkill -f 'ssh.*-L.*{cdp_port}'")
-    print(f"\n🔍 Check tunnels:")
-    print(f"   ps aux | grep 'ssh.*-L.*{cdp_port}'")
-    print(f"\n📊 Port usage:")
-    print(f"   • {cdp_port} → CDP Bridge (gotty/ttyd)")
-    print(f"   • {web_port} → Web Terminal (gotty/ttyd)")
-    print(f"\n🧪 Test connection:")
-    print(f"   curl http://localhost:{cdp_port}/system/status")
+    print(f"\n🔧 Create reverse tunnel to {target_host}:")
+    print(f"   ssh -fN -R {bridge_port}:localhost:{bridge_port} {target_host}")
+
+    print(f"\n🌐 Access from {target_host}:")
+    print(f"   curl http://localhost:{bridge_port}/health")
+    print(f"   curl http://localhost:{bridge_port}/cdp/status")
+
+    print(f"\n🔧 Kill tunnel (Windows):")
+    print(f"   tasklist | findstr ssh")
+    print(f"   taskkill /F /PID <tunnel_pid>")
+
+    print(f"\n🔧 Kill tunnel (Linux/Mac):")
+    print(f"   pkill -f 'ssh.*-R.*{bridge_port}'")
+
+    print(f"\n🔍 Check tunnel (Windows):")
+    print(f"   Get-WmiObject Win32_Process | Where-Object {{$_.Name -eq \"ssh.exe\"}} | Select-Object ProcessId,CommandLine")
+
+    print(f"\n🔍 Check tunnel (Linux/Mac):")
+    print(f"   ps aux | grep 'ssh.*-R.*{bridge_port}'")
+
+    print(f"\n🧪 Test from {target_host}:")
+    print(f"   ssh {target_host} 'curl http://localhost:{bridge_port}/health'")
+
+    print(f"\n📊 How it works:")
+    print(f"   • Your laptop runs CDP Ninja on localhost:{bridge_port}")
+    print(f"   • Reverse tunnel exposes it on {target_host}:localhost:{bridge_port}")
+    print(f"   • You can access CDP Ninja from {target_host} via localhost:{bridge_port}")
 
 
 def start_claude_interface(target_host, web_backend, web_port=7979, instruct_only=False):
