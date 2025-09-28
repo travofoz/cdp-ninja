@@ -28,7 +28,7 @@ from cdp_ninja.routes import browser_routes, debugging_routes, navigation_routes
 # Import deployment modules
 from cdp_ninja.deployment.cli import (
     handle_usage, handle_install_agents, handle_install_deps,
-    handle_tunnel, handle_kill_tunnels, handle_invoke_claude, handle_shell
+    handle_tunnel, handle_kill_tunnels, handle_start_browser, handle_invoke_claude, handle_shell
 )
 from cdp_ninja.deployment.platforms import detect_local_platform, detect_remote_platform
 from cdp_ninja.deployment.ssh_utils import verify_ssh_access_remote, check_remote_dependencies, setup_ssh_tunnel, start_claude_interface
@@ -919,6 +919,8 @@ def main():
                        help='Setup SSH tunnels for remote access')
     parser.add_argument('--kill-tunnels', action='store_true',
                        help='Kill all active SSH tunnels')
+    parser.add_argument('--start-browser', action='store_true',
+                       help='Start Chromium browser with CDP debugging enabled')
     parser.add_argument('--invoke-claude', type=str, metavar='user@host',
                        help='Start Claude interface in tmux with web terminal')
     parser.add_argument('--shell', action='store_true',
@@ -947,6 +949,10 @@ def main():
 
     if args.kill_tunnels:
         handle_kill_tunnels()
+        sys.exit(0)
+
+    if args.start_browser:
+        handle_start_browser()
         sys.exit(0)
 
     if args.invoke_claude:

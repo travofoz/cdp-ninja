@@ -306,6 +306,161 @@ def handle_kill_tunnels():
     return True
 
 
+def handle_start_browser():
+    """Start Chromium browser with CDP debugging enabled"""
+    import subprocess
+    import platform
+    import os
+    from pathlib import Path
+
+    print("🌐 Starting Chromium browser with CDP debugging...")
+
+    # Common browser executable names and paths
+    browser_candidates = []
+
+    if platform.system() == "Windows":
+        # Windows browser paths
+        browser_candidates = [
+            # Chrome
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
+
+            # Edge
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+
+            # Brave
+            os.path.expanduser(r"~\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe"),
+
+            # Chromium
+            os.path.expanduser(r"~\AppData\Local\Chromium\Application\chrome.exe"),
+        ]
+    elif platform.system() == "Darwin":
+        # macOS browser paths
+        browser_candidates = [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        ]
+    else:
+        # Linux browser commands (check PATH)
+        browser_candidates = [
+            "google-chrome",
+            "google-chrome-stable",
+            "chromium",
+            "chromium-browser",
+            "microsoft-edge",
+            "brave-browser",
+        ]
+
+    # Find available browser
+    browser_path = None
+    browser_name = None
+
+    for candidate in browser_candidates:
+        if platform.system() == "Linux":
+            # For Linux, check if command exists in PATH
+            try:
+                result = subprocess.run(['which', candidate], capture_output=True, timeout=5)
+                if result.returncode == 0:
+                    browser_path = candidate
+                    browser_name = candidate
+                    break
+            except:
+                continue
+        else:
+            # For Windows/macOS, check if file exists
+            if os.path.exists(candidate):
+                browser_path = candidate
+                browser_name = Path(candidate).stem
+                break
+
+    if not browser_path:
+        print("❌ No Chromium-based browser found!")
+        print("💡 Supported browsers:")
+        print("   • Google Chrome")
+        print("   • Microsoft Edge")
+        print("   • Brave Browser")
+        print("   • Chromium")
+        print("\n💡 Manual command:")
+        print('   chrome --remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir="C:\\temp\\chrome-debug"')
+        return False
+
+    print(f"✅ Found browser: {browser_name}")
+    print(f"   Path: {browser_path}")
+
+    # Create temp directory for user data
+    if platform.system() == "Windows":
+        user_data_dir = r"C:\temp\chrome-debug"
+    else:
+        user_data_dir = "/tmp/chrome-debug"
+
+    # Ensure temp directory exists
+    try:
+        os.makedirs(user_data_dir, exist_ok=True)
+    except Exception as e:
+        print(f"⚠️  Couldn't create temp directory {user_data_dir}: {e}")
+        user_data_dir = None
+
+    # Build browser command
+    browser_cmd = [browser_path]
+    browser_cmd.extend([
+        '--remote-debugging-port=9222',
+        '--remote-allow-origins=*',
+    ])
+
+    if user_data_dir:
+        browser_cmd.append(f'--user-data-dir={user_data_dir}')
+
+    # Additional flags for automation
+    browser_cmd.extend([
+        '--disable-web-security',  # For testing
+        '--disable-features=VizDisplayCompositor',  # Stability
+    ])
+
+    print(f"🚀 Launching browser...")
+    print(f"   Command: {' '.join(browser_cmd)}")
+
+    try:
+        # Start browser in background
+        if platform.system() == "Windows":
+            # On Windows, use CREATE_NEW_PROCESS_GROUP to detach
+            process = subprocess.Popen(
+                browser_cmd,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        else:
+            # On Unix, use nohup-like approach
+            process = subprocess.Popen(
+                browser_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                preexec_fn=os.setsid if hasattr(os, 'setsid') else None
+            )
+
+        print(f"✅ Browser started successfully!")
+        print(f"   • Process PID: {process.pid}")
+        print(f"   • Debug Port: 9222")
+        if user_data_dir:
+            print(f"   • Profile: {user_data_dir}")
+
+        print(f"\n🧪 Test CDP connection:")
+        print(f"   curl http://localhost:9222/json")
+
+        print(f"\n💡 Start CDP Ninja bridge:")
+        print(f"   uv run cdp-ninja")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Failed to start browser: {e}")
+        return False
+
+
 # Helper functions for agent installation
 def install_agents_local(target_path, agents_dir):
     """Install agents to local path with conflict resolution"""
