@@ -2643,7 +2643,7 @@ def track_performance_budget():
             budget_tracking_code = f"""
                 (() => {{
                     const budgetTracker = {{
-                        budget_limits: {json.dumps(budget_limits)},
+                        budget_limits: {budget_limits},
                         track_overtime: {str(track_overtime).lower()},
                         alert_on_violation: {str(alert_on_violation).lower()},
                         budget_scope: '{budget_scope}',
@@ -3067,7 +3067,7 @@ def measure_optimization_impact():
             impact_measurement_code = f"""
                 (() => {{
                     const impactAnalysis = {{
-                        baseline_metrics: {json.dumps(baseline_metrics)},
+                        baseline_metrics: {baseline_metrics},
                         include_user_metrics: {str(include_user_metrics).lower()},
                         analyze_resource_changes: {str(analyze_resource_changes).lower()},
                         optimization_type: '{optimization_type}',

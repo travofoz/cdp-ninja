@@ -1691,7 +1691,7 @@ def validate_error_recovery():
                     return new Promise((resolve) => {{
                         const validationResults = {{
                             recovery_type: '{recovery_type}',
-                            recovery_config: {json.dumps(recovery_config)},
+                            recovery_config: {recovery_config},
                             stress_test: {str(stress_test).lower()},
                             failure_rate: {failure_rate},
                             validation_start: Date.now(),
