@@ -392,6 +392,11 @@ class CDPClient:
         domain_manager = get_domain_manager()
         domain_manager.set_cdp_client(self)
 
+        # Check if domains are already enabled (from eager loading)
+        if len(domain_manager.enabled_domains) > 0:
+            logger.info(f"Domains already enabled ({len(domain_manager.enabled_domains)} domains), skipping default loading")
+            return True
+
         # Enable default safe domains
         return domain_manager.enable_default_domains()
 
