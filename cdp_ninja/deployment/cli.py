@@ -14,11 +14,12 @@ SHELL_ENABLED = False
 
 
 def handle_usage():
-    """Output complete API documentation from USAGE.md"""
+    """Output API documentation overview and domain guide"""
     try:
-        usage_path = Path(__file__).parent.parent.parent / "USAGE.md"
+        usage_path = Path(__file__).parent.parent.parent / "docs" / "usage" / "readme.md"
         if not usage_path.exists():
-            print("❌ USAGE.md not found at expected location")
+            print("❌ API documentation not found at expected location")
+            print(f"   Expected: {usage_path}")
             return
 
         print("🥷 CDP Ninja API Documentation")
@@ -31,6 +32,7 @@ def handle_usage():
         # Parse and format the markdown content for CLI display
         lines = content.split('\n')
         in_code_block = False
+        in_table = False
 
         for line in lines:
             # Handle code blocks
@@ -38,6 +40,18 @@ def handle_usage():
                 in_code_block = not in_code_block
                 print("─" * 40)
                 continue
+
+            # Handle tables
+            if '|' in line and not in_code_block:
+                in_table = True
+                # Format table rows
+                if line.startswith('|'):
+                    formatted_line = line.replace('|', '│').strip()
+                    print(f"   {formatted_line}")
+                continue
+            elif in_table and not '|' in line:
+                in_table = False
+                print()
 
             # Format headers
             if line.startswith('# '):
@@ -59,6 +73,13 @@ def handle_usage():
                 print(line)
             else:
                 print()
+
+        print("\n📁 Full documentation files:")
+        docs_dir = Path(__file__).parent.parent.parent / "docs" / "usage"
+        if docs_dir.exists():
+            for doc_file in sorted(docs_dir.glob("*.md")):
+                if doc_file.name != "readme.md":
+                    print(f"   • {doc_file.name}")
 
     except Exception as e:
         print(f"❌ Error reading API documentation: {e}")
