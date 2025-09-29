@@ -350,7 +350,7 @@ def hover_element():
                         const el = document.querySelector('{selector}');
                         if (el) {{
                             const rect = el.getBoundingClientRect();
-                            return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
+                            return {{x: rect.left + rect.width/2, y: rect.top + rect.height/2}};
                         }}
                         return null;
                     }})()
@@ -363,7 +363,7 @@ def hover_element():
 
                 if 'result' in coord_result and 'result' in coord_result['result']:
                     coords = coord_result['result']['result']
-                    if coords:
+                    if coords and 'x' in coords and 'y' in coords:
                         x, y = coords['x'], coords['y']
 
                         hover_result = cdp.send_command('Input.dispatchMouseEvent', {

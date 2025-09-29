@@ -181,8 +181,11 @@ def get_computed_style():
             resolved_node_id = _resolve_node_id(cdp, selector, node_id)
 
             if resolved_node_id:
-                # Get computed style
-                style_result = cdp.send_command('DOM.getComputedStyleForNode', {
+                # Enable CSS domain first
+                cdp.send_command('CSS.enable')
+
+                # Get computed style using correct CSS domain command
+                style_result = cdp.send_command('CSS.getComputedStyleForNode', {
                     'nodeId': resolved_node_id
                 })
 
@@ -200,14 +203,50 @@ def get_computed_style():
                         for style in all_styles:
                             computed_styles[style['name']] = style['value']
 
-                return jsonify({
-                    "success": 'error' not in style_result,
-                    "selector": selector,
-                    "nodeId": resolved_node_id,
-                    "properties": properties,
-                    "computedStyle": computed_styles,
-                    "cdp_result": style_result
-                })
+                    return jsonify({
+                        "success": True,
+                        "selector": selector,
+                        "nodeId": resolved_node_id,
+                        "properties": properties,
+                        "computedStyle": computed_styles,
+                        "cdp_result": style_result
+                    })
+                else:
+                    # Fallback to JavaScript approach
+                    js_props = properties if properties else ['color', 'font-size', 'display', 'position', 'visibility', 'opacity']
+                    props_code = ', '.join([f"'{prop}'" for prop in js_props])
+
+                    code = f"""
+                        (() => {{
+                            const el = document.querySelector('{selector}');
+                            if (!el) return null;
+                            const style = window.getComputedStyle(el);
+                            const result = {{}};
+                            const props = [{props_code}];
+                            props.forEach(prop => {{
+                                result[prop] = style.getPropertyValue(prop);
+                            }});
+                            return result;
+                        }})()
+                    """
+
+                    js_result = cdp.send_command('Runtime.evaluate', {
+                        'expression': code,
+                        'returnByValue': True
+                    })
+
+                    if 'result' in js_result and 'result' in js_result['result']:
+                        computed_styles = js_result['result']['result'] or {}
+
+                    return jsonify({
+                        "success": computed_styles is not None,
+                        "selector": selector,
+                        "nodeId": resolved_node_id,
+                        "properties": properties,
+                        "computedStyle": computed_styles,
+                        "method": "javascript_fallback",
+                        "cdp_result": style_result
+                    })
             else:
                 return jsonify({
                     "success": False,
@@ -422,6 +461,14 @@ def access_shadow_dom():
                         "depth": depth,
                         "shadow_dom": desc_result.get('result', {}),
                         "cdp_result": desc_result
+                    })
+                else:
+                    # Element not found or invalid eval result
+                    return jsonify({
+                        "success": False,
+                        "error": "Element not found or could not access shadow DOM",
+                        "selector": selector,
+                        "cdp_result": eval_result
                     })
 
             elif node_id:

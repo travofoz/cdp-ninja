@@ -518,20 +518,56 @@ def modify_dom():
         data = request.get_json() or {}
         selector = data.get('selector', '')
         action = data.get('action', 'html')
-        content = data.get('content', '')
+        # Support both 'content' and 'value' parameters
+        content = data.get('content', data.get('value', ''))
         attributes = data.get('attributes', {})
         styles = data.get('styles', {})
+
+        # Normalize action aliases
+        action_aliases = {
+            'set_text': 'text',
+            'set_html': 'html',
+            'set_content': 'text'
+        }
+        action = action_aliases.get(action, action)
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
             if action == 'html':
-                code = f"document.querySelector('{selector}').innerHTML = '{content}'"
+                code = f"""
+                    (() => {{
+                        const el = document.querySelector('{selector}');
+                        if (el) {{
+                            el.innerHTML = '{content}';
+                            return 'html_set';
+                        }}
+                        return 'element_not_found';
+                    }})()
+                """
             elif action == 'text':
-                code = f"document.querySelector('{selector}').textContent = '{content}'"
+                code = f"""
+                    (() => {{
+                        const el = document.querySelector('{selector}');
+                        if (el) {{
+                            el.textContent = '{content}';
+                            return 'text_set';
+                        }}
+                        return 'element_not_found';
+                    }})()
+                """
             elif action == 'remove':
-                code = f"document.querySelector('{selector}').remove()"
+                code = f"""
+                    (() => {{
+                        const el = document.querySelector('{selector}');
+                        if (el) {{
+                            el.remove();
+                            return 'element_removed';
+                        }}
+                        return 'element_not_found';
+                    }})()
+                """
             elif action == 'attr':
                 attr_code = []
                 for attr, value in attributes.items():
