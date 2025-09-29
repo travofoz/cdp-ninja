@@ -696,3 +696,127 @@ def get_crash_stats():
             "error": "Crash reporter crashed",
             "details": str(e)
         }), 500
+
+
+@debugging_routes.route('/cdp/domains/status', methods=['GET'])
+def get_domain_status():
+    """
+    Get CDP domain status
+
+    @route GET /cdp/domains/status
+    @returns {object} Domain status and configuration
+    """
+    try:
+        from cdp_ninja.core.domain_manager import get_domain_manager
+
+        domain_manager = get_domain_manager()
+        status = domain_manager.get_domain_status()
+
+        return jsonify(status)
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "domains_available": False
+        }), 500
+
+
+@debugging_routes.route('/cdp/domains/<domain>/enable', methods=['POST'])
+def enable_domain(domain):
+    """
+    Enable specific CDP domain
+
+    @route POST /cdp/domains/<domain>/enable
+    @returns {object} Enable result
+    """
+    try:
+        from cdp_ninja.core.domain_manager import get_domain_manager, CDPDomain
+
+        # Convert string to CDPDomain enum
+        try:
+            domain_enum = CDPDomain(domain)
+        except ValueError:
+            return jsonify({
+                "error": f"Unknown domain: {domain}",
+                "available_domains": [d.value for d in CDPDomain]
+            }), 400
+
+        domain_manager = get_domain_manager()
+        pool = get_global_pool()
+        cdp = pool.acquire()
+
+        try:
+            # Set CDP client for domain operations
+            domain_manager.set_cdp_client(cdp)
+
+            # Enable domain
+            success = domain_manager.ensure_domain(domain_enum, "api_enable")
+
+            return jsonify({
+                "success": success,
+                "domain": domain,
+                "enabled": success,
+                "status": domain_manager.get_domain_status()["domain_details"].get(domain, {})
+            })
+
+        finally:
+            pool.release(cdp)
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "domain": domain,
+            "enabled": False
+        }), 500
+
+
+@debugging_routes.route('/cdp/domains/<domain>/disable', methods=['POST'])
+def disable_domain_endpoint(domain):
+    """
+    Disable specific CDP domain
+
+    @route POST /cdp/domains/<domain>/disable
+    @returns {object} Disable result
+    """
+    try:
+        from cdp_ninja.core.domain_manager import get_domain_manager, CDPDomain
+
+        # Convert string to CDPDomain enum
+        try:
+            domain_enum = CDPDomain(domain)
+        except ValueError:
+            return jsonify({
+                "error": f"Unknown domain: {domain}",
+                "available_domains": [d.value for d in CDPDomain]
+            }), 400
+
+        data = request.get_json() or {}
+        force = data.get('force', False)
+
+        domain_manager = get_domain_manager()
+        pool = get_global_pool()
+        cdp = pool.acquire()
+
+        try:
+            # Set CDP client for domain operations
+            domain_manager.set_cdp_client(cdp)
+
+            # Disable domain
+            success = domain_manager.disable_domain(domain_enum, force=force)
+
+            return jsonify({
+                "success": success,
+                "domain": domain,
+                "disabled": success,
+                "status": domain_manager.get_domain_status()["domain_details"].get(domain, {})
+            })
+
+        finally:
+            pool.release(cdp)
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "domain": domain,
+            "disabled": False
+        }), 500
