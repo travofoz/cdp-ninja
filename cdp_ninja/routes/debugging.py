@@ -257,11 +257,26 @@ def clear_console():
 def debug_events():
     """DEBUG: Show all recent events to debug console log issue"""
     try:
+        domain_filter = request.args.get('domain')
+
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Get all events from all domains
+            # If domain filter specified, return actual events
+            if domain_filter:
+                events = cdp.get_recent_events(domain_filter, 100)
+                event_data = []
+                for event in events:
+                    event_data.append({
+                        "method": event.method,
+                        "domain": event.domain,
+                        "timestamp": event.timestamp,
+                        "params": event.params
+                    })
+                return jsonify({"events": event_data})
+
+            # Otherwise return debug analysis
             all_events = cdp.get_recent_events(None, 200)  # Get from general queue
             console_events = cdp.get_recent_events('Console', 50)
             runtime_events = cdp.get_recent_events('Runtime', 50)
