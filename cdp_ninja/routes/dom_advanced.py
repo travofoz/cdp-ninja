@@ -30,26 +30,28 @@ def _resolve_node_id(cdp, selector, node_id=None):
     if not selector:
         return None
 
-    # Find node via Runtime.evaluate
-    find_code = f"""
-        (() => {{
-            const el = document.querySelector('{selector}');
-            return el ? el : null;
-        }})()
-    """
+    try:
+        # Ensure DOM domain is enabled first
+        cdp.send_command('DOM.enable')
 
-    eval_result = cdp.send_command('Runtime.evaluate', {
-        'expression': find_code,
-        'returnByValue': False
-    })
+        # Get document root
+        doc_result = cdp.send_command('DOM.getDocument')
+        if 'error' in doc_result or 'result' not in doc_result:
+            return None
 
-    if 'result' in eval_result and 'objectId' in eval_result['result']:
-        desc_result = cdp.send_command('DOM.describeNode', {
-            'objectId': eval_result['result']['objectId']
+        root_node_id = doc_result['result']['root']['nodeId']
+
+        # Query selector from document root
+        query_result = cdp.send_command('DOM.querySelector', {
+            'nodeId': root_node_id,
+            'selector': selector
         })
 
-        if 'result' in desc_result and 'node' in desc_result['result']:
-            return desc_result['result']['node']['nodeId']
+        if 'result' in query_result and 'nodeId' in query_result['result']:
+            return query_result['result']['nodeId']
+
+    except Exception as e:
+        logger.error(f"Error resolving node ID for selector '{selector}': {e}")
 
     return None
 
