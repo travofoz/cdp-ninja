@@ -46,7 +46,7 @@ def execute_javascript():
         try:
             data = request.get_json()
             if data:
-                code = data.get('code', '')
+                code = data.get('code', '') or data.get('expression', '')
                 await_promise = data.get('await', False)
                 timeout = data.get('timeout', 30000)
                 return_by_value = data.get('return_by_value', False)
@@ -226,9 +226,8 @@ def clear_console():
                 'expression': 'console.clear()'
             })
 
-            # Clear CDP Ninja's internal Console and Runtime event storage
-            cdp.clear_events('Console')
-            cdp.clear_events('Runtime')
+            # Clear CDP Ninja's internal event storage (all domains)
+            cdp.clear_events(None)
 
             return jsonify({
                 "success": True,

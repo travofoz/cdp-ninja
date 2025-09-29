@@ -178,11 +178,20 @@ class EventManager:
                 logger.info(f"Cleared events for domain: {domain}")
             else:
                 # Clear all events
-                with self.event_queue.mutex:
-                    self.event_queue.queue.clear()
+                # Empty the queue by consuming all items
+                while not self.event_queue.empty():
+                    try:
+                        self.event_queue.get_nowait()
+                    except:
+                        break
 
+                # Clear all domain-specific queues
                 for domain_queue in self.events_by_domain.values():
                     domain_queue.clear()
+
+                # Reset statistics
+                self.total_events_received = 0
+                self.events_dropped = 0
 
                 logger.info("Cleared all events")
 

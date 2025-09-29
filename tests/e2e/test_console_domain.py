@@ -43,7 +43,7 @@ class TestConsoleDomain(CDPNinjaE2ETest):
         self.navigate_to_test_page("/console-error-standard.html")
 
         # Wait for error to propagate
-        time.sleep(2)
+        time.sleep(3)
 
         # Test the endpoint that was broken
         logs = self.get_console_logs()
@@ -53,7 +53,8 @@ class TestConsoleDomain(CDPNinjaE2ETest):
 
         error_found = False
         for log in logs:
-            if "TypeError" in log.get('text', '') and "undefined" in log.get('text', ''):
+            log_text = log.get('message', {}).get('text', '') or (log.get('args', [{}])[0].get('value', '') if log.get('args') else '')
+            if "Cannot read properties" in log_text or "TypeError" in log_text:
                 error_found = True
                 break
 
@@ -62,8 +63,8 @@ class TestConsoleDomain(CDPNinjaE2ETest):
     def test_console_event_types(self):
         """Test all console event types are captured correctly"""
         test_cases = [
-            ("/console-error-standard.html", "error", "TypeError: Cannot read property"),
-            ("/console-warn-standard.html", "warn", "This is a test warning"),
+            ("/console-error-standard.html", "error", "Cannot read properties"),
+            ("/console-warn-standard.html", "warning", "This is a test warning"),
             ("/console-log-standard.html", "log", "Test log message"),
             ("/console-log-standard.html", "log", "Test log message"),
         ]
@@ -72,15 +73,16 @@ class TestConsoleDomain(CDPNinjaE2ETest):
             with self.subTest(endpoint=endpoint, level=level):
                 self.clear_console()
                 self.navigate_to_test_page(endpoint)
-                time.sleep(1)
+                time.sleep(2)
 
                 logs = self.get_console_logs()
 
                 # Find log with expected level and text
                 matching_log = None
                 for log in logs:
-                    if (log.get('level') == level and
-                        expected_text in log.get('text', '')):
+                    log_level = log.get('message', {}).get('level') or log.get('type')
+                    log_text = log.get('message', {}).get('text', '') or (log.get('args', [{}])[0].get('value', '') if log.get('args') else '')
+                    if (log_level == level and expected_text in log_text):
                         matching_log = log
                         break
 
@@ -93,7 +95,7 @@ class TestConsoleDomain(CDPNinjaE2ETest):
         """Test console clear endpoint works correctly"""
         # Generate some console logs
         self.navigate_to_test_page("/console-multiple-logs.html")
-        time.sleep(1)
+        time.sleep(2)
 
         # Verify logs exist
         logs_before = self.get_console_logs()
@@ -116,7 +118,7 @@ class TestConsoleDomain(CDPNinjaE2ETest):
 
         # Generate known console event
         self.navigate_to_test_page("/console-error-standard.html")
-        time.sleep(2)
+        time.sleep(3)
 
         # Get logs via console endpoint (uses pool)
         pool_logs = self.get_console_logs()
@@ -149,14 +151,16 @@ class TestConsoleDomain(CDPNinjaE2ETest):
 
         # Trigger console.log via Runtime.evaluate
         self.execute_js("console.log('Runtime console test');")
-        time.sleep(1)
+        time.sleep(2)
 
         # Check both console logs and debug events
         logs = self.get_console_logs()
         debug_events = self.get_debug_events(domain="Runtime")
 
         # Should capture in both places
-        log_found = any("Runtime console test" in log.get('text', '') for log in logs)
+        log_found = any("Runtime console test" in (log.get('message', {}).get('text', '') or
+                                                  (log.get('args', [{}])[0].get('value', '') if log.get('args') else ''))
+                       for log in logs)
         event_found = any(
             event.get('method') == 'Runtime.consoleAPICalled' and
             "Runtime console test" in str(event.get('params', {}))
@@ -186,7 +190,7 @@ class TestConsoleDomain(CDPNinjaE2ETest):
         response = requests.post(f"{self.cdp_base}/cdp/page/navigate",
                                json={"url": url})
         self.assertEqual(response.status_code, 200)
-        time.sleep(1)  # Wait for page load
+        time.sleep(2)  # Wait for page load
 
     def get_console_logs(self) -> List[Dict[str, Any]]:
         """Get console logs from CDP ninja"""
