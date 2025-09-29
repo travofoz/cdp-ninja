@@ -206,3 +206,4 @@ Each debugging session teaches the path to the next. The Nine Schools provide th
 ---
 
 **The ninja renaissance is complete.** 🥷⚔️💎🔷🛡️☁️🌳🐅🔒
+- you cannot test any changes yourself. the cdp-ninja bridge runs on the remote client operating the browser. you use it over a tunnel. therefore you must push, and wait for the user to pull and update the tool

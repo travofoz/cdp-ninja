@@ -1,0 +1,213 @@
+"""
+E2E Tests for Console Domain Endpoints
+
+Tests the console logging regression and validates event consistency
+across server vs pool CDPClient instances.
+"""
+
+import requests
+import time
+import json
+from typing import List, Dict, Any
+from dataclasses import dataclass
+from .base_test import CDPNinjaE2ETest
+
+
+@dataclass
+class ConsoleEvent:
+    """Expected console event structure"""
+    level: str  # 'error', 'warn', 'log', 'info'
+    text: str
+    source: str
+    line: int
+    column: int
+
+
+class TestConsoleDomain(CDPNinjaE2ETest):
+    """Test Console domain endpoints for event consistency"""
+
+    def setUp(self):
+        """Setup for console domain tests"""
+        super().setUp()
+        self.demo_base = "http://cdp-ninja-test.meatspace.lol"
+
+    def test_console_logs_endpoint_regression(self):
+        """
+        Test the specific regression that was fixed:
+        Console logs endpoint returning empty when server has events
+        """
+        # Clear any existing console logs
+        self.clear_console()
+
+        # Navigate to page that generates known console error
+        self.navigate_to_test_page("/console-error-standard.html")
+
+        # Wait for error to propagate
+        time.sleep(2)
+
+        # Test the endpoint that was broken
+        logs = self.get_console_logs()
+
+        # Assert we got the expected error
+        self.assertGreater(len(logs), 0, "Console logs endpoint should return events")
+
+        error_found = False
+        for log in logs:
+            if "TypeError" in log.get('text', '') and "undefined" in log.get('text', ''):
+                error_found = True
+                break
+
+        self.assertTrue(error_found, "Expected TypeError should be captured in console logs")
+
+    def test_console_event_types(self):
+        """Test all console event types are captured correctly"""
+        test_cases = [
+            ("/console-error-standard.html", "error", "TypeError: Cannot read property"),
+            ("/console-warn-standard.html", "warn", "This is a test warning"),
+            ("/console-log-standard.html", "log", "Test log message"),
+            ("/console-log-standard.html", "log", "Test log message"),
+        ]
+
+        for endpoint, level, expected_text in test_cases:
+            with self.subTest(endpoint=endpoint, level=level):
+                self.clear_console()
+                self.navigate_to_test_page(endpoint)
+                time.sleep(1)
+
+                logs = self.get_console_logs()
+
+                # Find log with expected level and text
+                matching_log = None
+                for log in logs:
+                    if (log.get('level') == level and
+                        expected_text in log.get('text', '')):
+                        matching_log = log
+                        break
+
+                self.assertIsNotNone(
+                    matching_log,
+                    f"Expected {level} log with '{expected_text}' not found"
+                )
+
+    def test_console_clear_functionality(self):
+        """Test console clear endpoint works correctly"""
+        # Generate some console logs
+        self.navigate_to_test_page("/console-multiple-logs.html")
+        time.sleep(1)
+
+        # Verify logs exist
+        logs_before = self.get_console_logs()
+        self.assertGreater(len(logs_before), 0, "Should have logs before clearing")
+
+        # Clear console
+        response = self.clear_console()
+        self.assertEqual(response.status_code, 200, "Console clear should succeed")
+
+        # Verify logs are cleared
+        logs_after = self.get_console_logs()
+        self.assertEqual(len(logs_after), 0, "Logs should be cleared after clear command")
+
+    def test_cross_instance_consistency(self):
+        """
+        Test that server CDPClient and pool CDPClient see same console events
+        This prevents the regression we just fixed
+        """
+        self.clear_console()
+
+        # Generate known console event
+        self.navigate_to_test_page("/console-error-standard.html")
+        time.sleep(2)
+
+        # Get logs via console endpoint (uses pool)
+        pool_logs = self.get_console_logs()
+
+        # Get events via debug endpoint (uses server CDPClient)
+        debug_events = self.get_debug_events(domain="Console")
+
+        # Both should have the same console events
+        self.assertGreater(len(pool_logs), 0, "Pool CDPClient should have console events")
+        self.assertGreater(len(debug_events), 0, "Server CDPClient should have console events")
+
+        # Find matching console events
+        pool_error_texts = {log.get('text', '') for log in pool_logs}
+        debug_error_texts = {
+            event.get('params', {}).get('args', [{}])[0].get('value', '')
+            for event in debug_events
+            if event.get('method') == 'Runtime.consoleAPICalled'
+        }
+
+        # Should have overlap (same events captured by both)
+        common_events = pool_error_texts.intersection(debug_error_texts)
+        self.assertGreater(
+            len(common_events), 0,
+            "Pool and server CDPClient should capture same console events"
+        )
+
+    def test_runtime_console_api_events(self):
+        """Test Runtime.consoleAPICalled events are captured"""
+        self.clear_console()
+
+        # Trigger console.log via Runtime.evaluate
+        self.execute_js("console.log('Runtime console test');")
+        time.sleep(1)
+
+        # Check both console logs and debug events
+        logs = self.get_console_logs()
+        debug_events = self.get_debug_events(domain="Runtime")
+
+        # Should capture in both places
+        log_found = any("Runtime console test" in log.get('text', '') for log in logs)
+        event_found = any(
+            event.get('method') == 'Runtime.consoleAPICalled' and
+            "Runtime console test" in str(event.get('params', {}))
+            for event in debug_events
+        )
+
+        self.assertTrue(log_found, "Console.log should appear in console logs")
+        self.assertTrue(event_found, "Console.log should trigger Runtime.consoleAPICalled event")
+
+    def test_console_domain_filtering(self):
+        """Test that console events are only stored when Console domain enabled"""
+        # This would require domain enable/disable API
+        # For now, document the requirement
+
+        # TODO: Implement when domain management API is available
+        # 1. Disable Console domain
+        # 2. Generate console events
+        # 3. Verify events are not stored
+        # 4. Re-enable Console domain
+        # 5. Verify events are stored again
+        self.skipTest("Domain enable/disable API not yet implemented")
+
+    # Helper methods for console testing
+    def navigate_to_test_page(self, path: str):
+        """Navigate to test page and wait for load"""
+        url = f"{self.demo_base}{path}"
+        response = requests.post(f"{self.cdp_base}/cdp/page/navigate",
+                               json={"url": url})
+        self.assertEqual(response.status_code, 200)
+        time.sleep(1)  # Wait for page load
+
+    def get_console_logs(self) -> List[Dict[str, Any]]:
+        """Get console logs from CDP ninja"""
+        response = requests.get(f"{self.cdp_base}/cdp/console/logs")
+        self.assertEqual(response.status_code, 200)
+        return response.json().get('logs', [])
+
+    def clear_console(self) -> requests.Response:
+        """Clear console logs"""
+        return requests.post(f"{self.cdp_base}/cdp/console/clear")
+
+    def execute_js(self, expression: str) -> Dict[str, Any]:
+        """Execute JavaScript via Runtime.evaluate"""
+        response = requests.post(f"{self.cdp_base}/cdp/execute",
+                               json={"expression": expression})
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def get_debug_events(self, domain: str = None) -> List[Dict[str, Any]]:
+        """Get debug events, optionally filtered by domain"""
+        params = {"domain": domain} if domain else {}
+        response = requests.get(f"{self.cdp_base}/cdp/debug/events", params=params)
+        self.assertEqual(response.status_code, 200)
+        return response.json().get('events', [])

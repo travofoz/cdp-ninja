@@ -221,13 +221,20 @@ def clear_console():
         cdp = pool.acquire()
 
         try:
+            # Clear browser console display
             result = cdp.send_command('Runtime.evaluate', {
                 'expression': 'console.clear()'
             })
 
+            # Clear CDP Ninja's internal Console and Runtime event storage
+            cdp.clear_events('Console')
+            cdp.clear_events('Runtime')
+
             return jsonify({
                 "success": True,
                 "cleared": True,
+                "browser_cleared": True,
+                "storage_cleared": True,
                 "command_result": result
             })
 
