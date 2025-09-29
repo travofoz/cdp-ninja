@@ -226,9 +226,6 @@ def clear_console():
                 'expression': 'console.clear()'
             })
 
-            # Clear CDP Ninja's internal event storage (all domains)
-            cdp.clear_events(None)
-
             # Stop any running intervals/timers that might continue generating logs
             cdp.send_command('Runtime.evaluate', {
                 'expression': '''
@@ -239,6 +236,14 @@ def clear_console():
                 }
                 '''
             })
+
+            # Clear CDP Ninja's internal event storage (all domains) - after stopping timers
+            cdp.clear_events(None)
+
+            # Wait briefly for any final events to settle, then clear again
+            import time
+            time.sleep(0.1)
+            cdp.clear_events(None)
 
             return jsonify({
                 "success": True,
