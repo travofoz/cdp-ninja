@@ -434,42 +434,99 @@ def access_shadow_dom():
         cdp = pool.acquire()
 
         try:
-            # Get node ID if we have selector
+            # Use JavaScript to directly access shadow DOM instead of CDP pierce
             if selector and not node_id:
-                find_code = f"""
+                shadow_code = f"""
                     (() => {{
                         const el = document.querySelector('{selector}');
-                        return el ? el : null;
+                        if (!el) return {{error: "element_not_found"}};
+
+                        if (!el.shadowRoot) return {{error: "no_shadow_root"}};
+
+                        function describeShadowNode(node, currentDepth = 0) {{
+                            if (currentDepth >= {depth}) return null;
+
+                            const result = {{
+                                nodeType: node.nodeType,
+                                nodeName: node.nodeName,
+                                nodeValue: node.nodeValue || "",
+                                attributes: {{}}
+                            }};
+
+                            // Add element-specific properties
+                            if (node.nodeType === 1) {{ // ELEMENT_NODE
+                                result.tagName = node.tagName;
+                                result.id = node.id || "";
+                                result.className = node.className || "";
+
+                                // Get attributes
+                                if (node.attributes) {{
+                                    for (let attr of node.attributes) {{
+                                        result.attributes[attr.name] = attr.value;
+                                    }}
+                                }}
+                            }}
+
+                            // Get children recursively
+                            if (node.childNodes && node.childNodes.length > 0) {{
+                                result.children = [];
+                                for (let child of node.childNodes) {{
+                                    const childDesc = describeShadowNode(child, currentDepth + 1);
+                                    if (childDesc) result.children.push(childDesc);
+                                }}
+                            }}
+
+                            // Check for nested shadow DOM
+                            if (node.shadowRoot) {{
+                                result.shadowRoot = describeShadowNode(node.shadowRoot, currentDepth + 1);
+                            }}
+
+                            return result;
+                        }}
+
+                        const shadowContent = describeShadowNode(el.shadowRoot, 0);
+
+                        return {{
+                            host: {{
+                                tagName: el.tagName,
+                                id: el.id || "",
+                                className: el.className || ""
+                            }},
+                            shadowRoot: shadowContent,
+                            depth: {depth}
+                        }};
                     }})()
                 """
 
-                eval_result = cdp.send_command('Runtime.evaluate', {
-                    'expression': find_code,
-                    'returnByValue': False
+                shadow_result = cdp.send_command('Runtime.evaluate', {
+                    'expression': shadow_code,
+                    'returnByValue': True
                 })
 
-                if 'result' in eval_result and 'objectId' in eval_result['result']:
-                    desc_result = cdp.send_command('DOM.describeNode', {
-                        'objectId': eval_result['result']['objectId'],
-                        'depth': depth,
-                        'pierce': True
-                    })
+                if 'result' in shadow_result and 'result' in shadow_result['result']:
+                    shadow_data = shadow_result['result']['result']['value']
 
-                    return jsonify({
-                        "success": 'error' not in desc_result,
-                        "selector": selector,
-                        "depth": depth,
-                        "shadow_dom": desc_result.get('result', {}),
-                        "cdp_result": desc_result
-                    })
-                else:
-                    # Element not found or invalid eval result
-                    return jsonify({
-                        "success": False,
-                        "error": "Element not found or could not access shadow DOM",
-                        "selector": selector,
-                        "cdp_result": eval_result
-                    })
+                    if shadow_data and not shadow_data.get('error'):
+                        return jsonify({
+                            "success": True,
+                            "selector": selector,
+                            "depth": depth,
+                            "shadow_dom": shadow_data,
+                            "method": "javascript_traversal"
+                        })
+                    elif shadow_data and shadow_data.get('error'):
+                        return jsonify({
+                            "success": False,
+                            "error": shadow_data['error'],
+                            "selector": selector
+                        })
+
+                return jsonify({
+                    "success": False,
+                    "error": "Failed to evaluate shadow DOM traversal",
+                    "selector": selector,
+                    "cdp_result": shadow_result
+                })
 
             elif node_id:
                 try:

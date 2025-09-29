@@ -348,11 +348,26 @@ def hover_element():
                 code = f"""
                     (() => {{
                         const el = document.querySelector('{selector}');
-                        if (el) {{
-                            const rect = el.getBoundingClientRect();
-                            return {{x: rect.left + rect.width/2, y: rect.top + rect.height/2}};
+                        if (!el) return {{error: "element_not_found"}};
+
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width === 0 && rect.height === 0) {{
+                            return {{error: "element_has_no_dimensions"}};
                         }}
-                        return null;
+
+                        const x = rect.left + rect.width / 2;
+                        const y = rect.top + rect.height / 2;
+
+                        return {{
+                            x: x,
+                            y: y,
+                            rect: {{
+                                left: rect.left,
+                                top: rect.top,
+                                width: rect.width,
+                                height: rect.height
+                            }}
+                        }};
                     }})()
                 """
 
@@ -362,8 +377,8 @@ def hover_element():
                 })
 
                 if 'result' in coord_result and 'result' in coord_result['result']:
-                    coords = coord_result['result']['result']
-                    if coords and 'x' in coords and 'y' in coords:
+                    coords = coord_result['result']['result']['value']
+                    if coords and not coords.get('error') and 'x' in coords and 'y' in coords:
                         x, y = coords['x'], coords['y']
 
                         hover_result = cdp.send_command('Input.dispatchMouseEvent', {
@@ -376,7 +391,14 @@ def hover_element():
                             "success": True,
                             "hovered": selector,
                             "at": [x, y],
+                            "rect": coords.get('rect', {}),
                             "method": "selector"
+                        })
+                    elif coords and coords.get('error'):
+                        return jsonify({
+                            "success": False,
+                            "error": coords['error'],
+                            "selector": selector
                         })
 
                 return jsonify({
