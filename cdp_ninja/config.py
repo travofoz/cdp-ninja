@@ -60,7 +60,7 @@ class CDPNinjaConfig:
             print("   Anyone on your network can control your browser!")
             print()
 
-        print(f"🥷 CDP Ninja Config:")
+        print("CDP Ninja Config:")
         print(f"   CDP Port: {self.cdp_port}")
         print(f"   Bridge Port: {self.bridge_port}")
         print(f"   Bind Host: {self.bind_host}")
