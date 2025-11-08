@@ -5,20 +5,11 @@ Breaking point discovery through controlled chaos and structural assault testing
 
 import logging
 from flask import Blueprint, jsonify, request
-from cdp_ninja.core import get_global_pool
+from cdp_ninja.core.cdp_pool import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
 
 logger = logging.getLogger(__name__)
 stress_testing_routes = Blueprint('stress_testing', __name__)
-
-
-def _parse_request_params(request, param_names):
-    """Utility: Parse request parameters from GET/POST"""
-    if request.method == 'GET':
-        return {name: request.args.get(name) for name in param_names}
-    else:
-        data = request.get_json() or {}
-        return {name: data.get(name) for name in param_names}
 
 
 @stress_testing_routes.route('/cdp/stress/memory_bomb', methods=['POST'])
@@ -56,11 +47,25 @@ def memory_stress_test():
     """
     try:
         data = request.get_json() or {}
-        allocation_mb = min(int(data.get('allocation_mb', 10)), 1000)  # Safety limit
-        iterations = min(int(data.get('iterations', 5)), 50)  # Safety limit
+
+        # Type validation with safe defaults
+        try:
+            allocation_mb = min(int(data.get('allocation_mb', 10)), 1000)  # Safety limit
+        except (ValueError, TypeError):
+            allocation_mb = 10
+
+        try:
+            iterations = min(int(data.get('iterations', 5)), 50)  # Safety limit
+        except (ValueError, TypeError):
+            iterations = 5
+
+        try:
+            max_allocation = min(int(data.get('max_allocation', 500)), 2000)  # Hard safety limit
+        except (ValueError, TypeError):
+            max_allocation = 500
+
         monitor_performance = data.get('monitor_performance', True)
         gradual_release = data.get('gradual_release', True)
-        max_allocation = min(int(data.get('max_allocation', 500)), 2000)  # Hard safety limit
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -298,9 +303,19 @@ def cpu_stress_test():
     """
     try:
         data = request.get_json() or {}
-        duration_ms = min(int(data.get('duration_ms', 1000)), 30000)  # Safety limit: 30 seconds max
+
+        # Type validation with safe defaults
+        try:
+            duration_ms = min(int(data.get('duration_ms', 1000)), 30000)  # Safety limit: 30 seconds max
+        except (ValueError, TypeError):
+            duration_ms = 1000
+
+        try:
+            intensity = min(max(int(data.get('intensity', 5)), 1), 10)  # 1-10 scale
+        except (ValueError, TypeError):
+            intensity = 5
+
         test_type = data.get('test_type', 'math')
-        intensity = min(max(int(data.get('intensity', 5)), 1), 10)  # 1-10 scale
         monitor_performance = data.get('monitor_performance', True)
         yield_control = data.get('yield_control', True)
 
