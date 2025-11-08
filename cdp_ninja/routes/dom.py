@@ -1,12 +1,18 @@
 """
-DOM Routes - RAW DOM manipulation and form operations
-No validation, no sanitization - test all edge cases
+DOM Routes - DOM manipulation and form operations with input validation
+Safe DOM querying, modification, and form handling
 """
 
 import logging
 from flask import Blueprint, jsonify, request
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_selector, validate_text_input, validate_boolean_param,
+    validate_integer_param, validate_depth, validate_form_fields,
+    validate_attributes, validate_css_property_name, validate_css_property_value,
+    javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 dom_routes = Blueprint('dom', __name__)
@@ -18,8 +24,8 @@ def get_dom_snapshot():
     Get current DOM tree snapshot
 
     @route GET /cdp/dom/snapshot
-    @param {number} [depth] - DOM tree depth (-1 for full tree)
-    @param {boolean} [include_text] - Include text nodes
+    @param {number} [depth] - DOM tree depth (-1 for full tree, max 10)
+    @param {boolean} [include_text] - Include text nodes (default: false)
     @returns {object} DOM tree or HTML content
 
     @example
@@ -33,15 +39,8 @@ def get_dom_snapshot():
     GET /cdp/dom/snapshot?include_text=true
     """
     try:
-        depth = request.args.get('depth', 1)
-        include_text = request.args.get('include_text', 'false').lower() == 'true'
-
-        # Convert depth to int if possible
-        try:
-            depth = int(depth)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid depth parameter '{depth}': {e}")
-            depth = 1
+        depth = validate_depth(request.args.get('depth', 1))
+        include_text = validate_boolean_param(request.args.get('include_text', False))
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -74,6 +73,9 @@ def get_dom_snapshot():
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
         crash_data = crash_reporter.report_crash(
             operation="get_dom_snapshot",
@@ -84,6 +86,7 @@ def get_dom_snapshot():
         return jsonify({
             "crash": True,
             "error": str(e),
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
@@ -91,42 +94,39 @@ def get_dom_snapshot():
 @dom_routes.route('/cdp/dom/query', methods=['POST'])
 def query_selector():
     """
-    Query DOM with ANY selector - malformed selectors welcome
+    Query DOM elements
 
     @route POST /cdp/dom/query
-    @param {string} selector - ANY CSS selector
-    @param {boolean} [all] - Return all matches (querySelectorAll)
-    @param {boolean} [details] - Include element details
-    @returns {object} Query results or crash data
+    @param {string} selector - CSS selector to query
+    @param {boolean} [all] - Return all matches (default: false)
+    @param {boolean} [details] - Include element details (default: false)
+    @returns {object} Query results
 
     @example
-    // Normal query
+    // Single element
     {"selector": "div.container"}
 
-    // Malformed selector - see what happens
-    {"selector": ">>>invalid<<<"}
+    // Multiple elements
+    {"selector": "input[type='text']", "all": true}
 
-    // Complex selector - test limits
-    {"selector": "div > span:nth-child(999999999999)"}
-
-    // Injection attempt
-    {"selector": "div'; alert('xss'); //"}
+    // With details
+    {"selector": "button.submit", "details": true}
     """
     try:
         data = request.get_json() or {}
-        selector = data.get('selector', '')  # Could be anything
-        query_all = data.get('all', False)
-        include_details = data.get('details', False)
+        selector = validate_selector(data.get('selector', ''))
+        query_all = validate_boolean_param(data.get('all', False))
+        include_details = validate_boolean_param(data.get('details', False))
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Use JavaScript to query - RAW selector, no escaping
+            # Use JavaScript to query with safe selector
             if query_all:
                 code = f"""
                     (() => {{
-                        const elements = document.querySelectorAll('{selector}');
+                        const elements = document.querySelectorAll({javascript_safe_value(selector)});
                         return Array.from(elements).map(el => ({{
                             tagName: el.tagName,
                             id: el.id,
@@ -138,7 +138,7 @@ def query_selector():
             else:
                 code = f"""
                     (() => {{
-                        const el = document.querySelector('{selector}');
+                        const el = document.querySelector({javascript_safe_value(selector)});
                         if (!el) return null;
                         return {{
                             tagName: el.tagName,
@@ -173,12 +173,14 @@ def query_selector():
                 "selector": selector,
                 "query_all": query_all,
                 "include_details": include_details,
-                "elements": result.get('result', {}).get('result', {}).get('value'),
-                "cdp_result": result
+                "elements": result.get('result', {}).get('result', {}).get('value')
             })
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -190,6 +192,7 @@ def query_selector():
         return jsonify({
             "crash": True,
             "error": str(e),
+            "error_type": type(e).__name__,
             "selector": data.get('selector'),
             "crash_id": crash_data.get('timestamp')
         }), 500
