@@ -149,7 +149,20 @@ def get_console_logs():
     """
     try:
         limit = validate_integer_param(request.args.get('limit', 100), "limit", default=100, min_val=1, max_val=10000)
-        level_filter = request.args.get('level')  # String filter, no injection risk
+
+        # Validate level filter - whitelist valid log levels
+        level_filter = request.args.get('level', '').lower()
+        valid_levels = {'log', 'debug', 'info', 'warning', 'error', 'all', ''}
+        if level_filter and level_filter not in valid_levels:
+            # If invalid level provided, return error instead of silently returning empty
+            return jsonify({
+                "error": f"Invalid log level: {level_filter}",
+                "valid_levels": list(valid_levels - {''})
+            }), 400
+
+        # Convert 'all' to '' (empty string means no filter)
+        if level_filter == 'all':
+            level_filter = ''
 
         pool = get_global_pool()
         cdp = pool.acquire()

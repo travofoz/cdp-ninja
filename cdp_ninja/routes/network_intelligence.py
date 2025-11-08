@@ -46,10 +46,18 @@ def analyze_network_timing():
     // Detailed timing breakdown
     POST {"detailed": true, "limit": 5}
     """
+    # Initialize variables before try block to prevent NameError in exception handler
+    url_filter = ''
+    limit = 100
+    detailed = False
+
     try:
         params = _parse_request_params(request, ['url_filter', 'limit', 'detailed'])
         url_filter = params['url_filter'] or ''
-        limit = int(params['limit'] or 100)
+        try:
+            limit = int(params['limit'] or 100)
+        except (ValueError, TypeError):
+            limit = 100
         detailed = params['detailed'] in [True, 'true', '1']
 
         pool = get_global_pool()
@@ -142,7 +150,7 @@ def analyze_network_timing():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "crash_id": crash_data.get('timestamp')
+            "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp')
         }), 500
 
 

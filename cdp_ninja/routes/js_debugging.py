@@ -443,7 +443,9 @@ def analyze_async_operations():
                         // If expression provided, analyze it
                         if ('{expression}') {{
                             try {{
-                                const result = eval(`{expression}`);
+                                // Use Function() instead of eval() for safer code execution
+                                const fn = new Function("return (" + {repr(expression)} + ")");
+                                const result = fn();
                                 promiseAnalysis.expression_result = {{
                                     type: typeof result,
                                     is_promise: result instanceof Promise,
