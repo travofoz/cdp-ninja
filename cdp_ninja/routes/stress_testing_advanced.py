@@ -12,6 +12,9 @@ from .route_utils import (
     require_domains, create_success_response, handle_cdp_error,
     parse_request_params, track_endpoint_usage
 )
+from cdp_ninja.routes.input_validation import (
+    validate_selector, javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +44,18 @@ def click_storm():
 
         try:
             data = request.get_json() or {}
-            target = data.get('target')
+            raw_target = data.get('target')
             count = data.get('count', 100)
             interval = data.get('interval', 10)
 
-            if not target:
+            if not raw_target:
                 return jsonify({"error": "target selector required"}), 400
+
+            # Validate target selector
+            try:
+                target = validate_selector(raw_target)
+            except ValidationError as e:
+                return jsonify({"error": str(e), "validation_failed": True}), 400
 
             client.send_command('DOM.enable')
             client.send_command('Input.enable') if hasattr(client, 'send_command') else None
@@ -54,7 +63,7 @@ def click_storm():
             click_storm_js = f"""
             (() => {{
                 const results = {{
-                    target_selector: '{target}',
+                    target_selector: {javascript_safe_value(target)},
                     clicks_requested: {count},
                     clicks_executed: 0,
                     interval_ms: {interval},
@@ -83,7 +92,7 @@ def click_storm():
                 }}
 
                 // Find target elements
-                const targets = document.querySelectorAll('{target}');
+                const targets = document.querySelectorAll({javascript_safe_value(target)});
                 results.target_analysis.elements_found = targets.length;
 
                 if (targets.length === 0) {{

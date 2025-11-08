@@ -12,6 +12,7 @@ from .route_utils import (
     require_domains, create_success_response, handle_cdp_error,
     parse_request_params, track_endpoint_usage, ACCESSIBILITY_DOMAINS
 )
+from cdp_ninja.routes.input_validation import javascript_safe_value, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ def accessibility_audit():
             audit_js = f"""
             (() => {{
                 const audit = {{
-                    wcag_level: '{wcag_level}',
+                    wcag_level: {javascript_safe_value(wcag_level)},
                     compliance_score: 100,
                     violations: [],
                     warnings: [],
@@ -146,7 +147,7 @@ def accessibility_audit():
                                 wcag: '1.4.3',
                                 element: el.tagName.toLowerCase(),
                                 description: 'Potential low contrast detected',
-                                remediation: 'Verify contrast ratio meets WCAG {wcag_level} standards',
+                                remediation: 'Verify contrast ratio meets WCAG ' + {javascript_safe_value(wcag_level)} + ' standards',
                                 selector: `${{el.tagName.toLowerCase()}}:nth-of-type(${{index + 1}})`
                             }});
                         }}
