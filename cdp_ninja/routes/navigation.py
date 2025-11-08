@@ -1,13 +1,16 @@
 """
-Navigation Routes - RAW page control
-Navigate anywhere, any URL scheme, any protocol
-Test edge cases and invalid URLs
+Navigation Routes - Page navigation and control with input validation
+Navigate to URLs with proper validation and security checks
 """
 
 import logging
 from flask import Blueprint, jsonify, request
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_url, validate_integer_param, validate_boolean_param,
+    validate_timeout, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 navigation_routes = Blueprint('navigation', __name__)
@@ -16,43 +19,40 @@ navigation_routes = Blueprint('navigation', __name__)
 @navigation_routes.route('/cdp/page/navigate', methods=['POST'])
 def navigate():
     """
-    Navigate to ANY URL - no restrictions
+    Navigate to a URL
 
     @route POST /cdp/page/navigate
-    @param {string} url - ANY URL, valid or invalid
-    @param {number} [timeout] - Navigation timeout in ms
-    @param {boolean} [wait_for_load] - Wait for page load complete
+    @param {string} url - URL to navigate to (http, https, or about:blank)
+    @param {number} [timeout] - Navigation timeout in ms (default: 30000, max: 600000)
+    @param {boolean} [wait_for_load] - Wait for page load complete (default: true)
     @returns {object} Navigation result
 
     @example
     // Normal navigation
     {"url": "https://example.com"}
 
-    // Test edge cases
-    {"url": "ftp://invalid.protocol"}
-    {"url": "javascript:alert('xss')"}
-    {"url": "data:text/html,<script>alert('data')</script>"}
+    // About:blank
+    {"url": "about:blank"}
 
-    // Local files
-    {"url": "file:///etc/passwd"}
+    // With custom timeout
+    {"url": "https://slow-site.example.com", "timeout": 60000}
 
-    // Malformed URLs
-    {"url": "not-a-url-at-all"}
-    {"url": "http://[invalid-ipv6]/test"}
+    // No wait for load
+    {"url": "https://example.com", "wait_for_load": false}
     """
     try:
         data = request.get_json() or {}
-        url = data.get('url', '')  # Empty URLs are valid tests too
-        timeout = data.get('timeout', 30000)  # User-controlled timeout
-        wait_for_load = data.get('wait_for_load', True)
+        url = validate_url(data.get('url', ''))
+        timeout = validate_timeout(data.get('timeout', 30000))
+        wait_for_load = validate_boolean_param(data.get('wait_for_load', True))
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Send EXACTLY what user provided - no URL validation
+            # Navigate to validated URL
             result = cdp.send_command('Page.navigate', {
-                'url': url  # Could be anything!
+                'url': url
             })
 
             navigation_result = {
@@ -65,9 +65,10 @@ def navigate():
             if wait_for_load and 'error' not in result:
                 import time
                 start_time = time.time()
+                timeout_secs = timeout / 1000.0
 
                 # Wait for page load (or timeout)
-                while time.time() - start_time < (timeout / 1000):
+                while time.time() - start_time < timeout_secs:
                     # Check if page finished loading
                     load_result = cdp.send_command('Runtime.evaluate', {
                         'expression': 'document.readyState',
@@ -88,6 +89,9 @@ def navigate():
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
         crash_data = crash_reporter.report_crash(
             operation="navigate",
@@ -98,42 +102,32 @@ def navigate():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "url": data.get('url', ''),
-            "crash_id": crash_data.get('timestamp'),
-            "possible_causes": [
-                "Invalid URL format",
-                "Blocked protocol",
-                "Network error",
-                "Chrome security restriction",
-                "Navigation timeout"
-            ]
+            "error_type": type(e).__name__,
+            "crash_id": crash_data.get('timestamp')
         }), 500
 
 
 @navigation_routes.route('/cdp/page/reload', methods=['POST'])
 def reload_page():
     """
-    Reload current page with optional parameters
+    Reload current page
 
     @route POST /cdp/page/reload
-    @param {boolean} [ignore_cache] - Bypass cache
-    @param {string} [script_to_evaluate] - Script to run after reload
+    @param {boolean} [ignore_cache] - Bypass cache (default: false)
     @returns {object} Reload result
 
     @example
     // Simple reload
     {}
 
-    // Hard reload
+    // Hard reload (bypass cache)
     {"ignore_cache": true}
 
-    // Reload with script injection
-    {"script_to_evaluate": "alert('reloaded')"}
+    // To run scripts after reload, use /cdp/execute separately
     """
     try:
         data = request.get_json() or {}
-        ignore_cache = data.get('ignore_cache', False)
-        script_to_evaluate = data.get('script_to_evaluate')  # Could be malicious
+        ignore_cache = validate_boolean_param(data.get('ignore_cache', False))
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -142,20 +136,20 @@ def reload_page():
             params = {}
             if ignore_cache:
                 params['ignoreCache'] = True
-            if script_to_evaluate:
-                params['scriptToEvaluateOnLoad'] = script_to_evaluate  # RAW script
 
             result = cdp.send_command('Page.reload', params)
 
             return jsonify({
                 "success": 'error' not in result,
                 "ignore_cache": ignore_cache,
-                "script_injected": bool(script_to_evaluate),
                 "cdp_result": result
             })
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -167,6 +161,7 @@ def reload_page():
         return jsonify({
             "crash": True,
             "error": str(e),
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
