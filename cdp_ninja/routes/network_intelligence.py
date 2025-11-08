@@ -150,7 +150,7 @@ def analyze_network_timing():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp')
+            "crash_id": crash_data.get('timestamp')
         }), 500
 
 

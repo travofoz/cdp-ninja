@@ -698,9 +698,9 @@ def get_performance_metrics():
         cdp = pool.acquire()
 
         try:
-            # Get performance timing
+            # Get performance timing (using modern Navigation Timing Level 2 API)
             timing_result = cdp.send_command('Runtime.evaluate', {
-                'expression': 'window.performance.timing',
+                'expression': 'window.performance.timing || performance.getEntriesByType("navigation")[0]',
                 'returnByValue': True
             })
 
@@ -723,10 +723,10 @@ def get_performance_metrics():
             })
 
             return jsonify({
-                "timing": timing_result.get('result', {}).get('value', {}),
-                "memory": memory_result.get('result', {}).get('value', {}),
-                "navigation": navigation_result.get('result', {}).get('value', []),
-                "resources": resource_result.get('result', {}).get('value', [])
+                "timing": timing_result.get('result', {}).get('result', {}).get('value', {}),
+                "memory": memory_result.get('result', {}).get('result', {}).get('value', {}),
+                "navigation": navigation_result.get('result', {}).get('result', {}).get('value', []),
+                "resources": resource_result.get('result', {}).get('result', {}).get('value', [])
             })
 
         finally:

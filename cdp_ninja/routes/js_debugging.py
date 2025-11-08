@@ -399,6 +399,7 @@ def analyze_async_operations():
 
             # Promise tracking analysis
             if promise_tracking:
+                expression_safe = javascript_safe_value(expression)
                 promise_code = f"""
                     (() => {{
                         const promiseAnalysis = {{
@@ -441,10 +442,10 @@ def analyze_async_operations():
                         promiseAnalysis.unhandled_rejections = unhandledRejections;
 
                         // If expression provided, analyze it
-                        if ('{expression}') {{
+                        if ({expression_safe}) {{
                             try {{
                                 // Use Function() instead of eval() for safer code execution
-                                const fn = new Function("return (" + {repr(expression)} + ")");
+                                const fn = new Function("return (" + {expression_safe} + ")");
                                 const result = fn();
                                 promiseAnalysis.expression_result = {{
                                     type: typeof result,

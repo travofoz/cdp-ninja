@@ -79,6 +79,10 @@ def click_element():
                     'returnByValue': True
                 })
 
+                # Extract the actual result from triple-nested CDP response
+                if 'result' in result:
+                    result = result.get('result', {}).get('result', {}).get('value', result)
+
             elif 'x' in data and 'y' in data:
                 # Validate coordinates
                 x, y = validate_coordinates(data['x'], data['y'])

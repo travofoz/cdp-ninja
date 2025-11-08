@@ -291,9 +291,6 @@ def analyze_rendering_performance():
 
                                 // Observe paint, layout, and measure events
                                 paintObserver.observe({{entryTypes: ['paint', 'measure']}});
-
-                                // Store observer for cleanup
-                                renderingAnalysis.paint_observer = paintObserver;
                             }} catch (observerError) {{
                                 renderingAnalysis.paint_observer_error = observerError.message;
                             }}
@@ -530,7 +527,6 @@ def profile_cpu_usage():
             sampling_interval = 100 if profiling_mode == 'precision' else 1000  # microseconds
 
             start_profiler = cdp.send_command('Profiler.start', {
-                'callCount': True,
                 'samplingInterval': sampling_interval
             })
 
@@ -746,7 +742,7 @@ def profile_cpu_usage():
 
             profiling_data = {
                 "cpu_analysis": analysis_result.get('result', {}).get('result', {}).get('value'),
-                "profiler_data": stop_result.get('result', {}).get('profile') if 'result' in stop_result else None
+                "profiler_data": stop_result.get('result', {}).get('profile', {}) if 'result' in stop_result else {}
             }
 
             # Clean up
@@ -1730,7 +1726,7 @@ def track_performance_budget():
         try:
             # Performance budget tracking code
             budget_tracking_code = PerformanceJSTemplates.track_performance_budget_template(
-                budget_type=budget_type
+                budget_type=budget_scope
             )
 
             result = cdp.send_command('Runtime.evaluate', {
@@ -1803,10 +1799,25 @@ def measure_optimization_impact():
         cdp = pool.acquire()
 
         try:
-            # Optimization impact measurement code
+            # Optimization impact measurement code - collect current metrics as "after" for comparison
+            current_metrics_code = """
+                (() => {
+                    return {
+                        load_time_ms: (performance.timing?.loadEventEnd || 0) - (performance.timing?.navigationStart || 0),
+                        memory_usage_mb: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1024 / 1024 * 100) / 100 : 0,
+                        resource_count: performance.getEntriesByType('resource').length
+                    };
+                })()
+            """
+
+            current_metrics = cdp.send_command('Runtime.evaluate', {
+                'expression': current_metrics_code,
+                'returnByValue': True
+            }).get('result', {}).get('result', {}).get('value', {})
+
             impact_measurement_code = PerformanceJSTemplates.measure_optimization_impact_template(
-                before_snapshot={},
-                after_snapshot={}
+                before_snapshot=baseline_metrics,
+                after_snapshot=current_metrics
             )
 
             result = cdp.send_command('Runtime.evaluate', {

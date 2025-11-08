@@ -240,7 +240,7 @@ def get_computed_style():
                     })
 
                     if 'result' in js_result and 'result' in js_result['result']:
-                        computed_styles = js_result['result']['result'] or {}
+                        computed_styles = js_result['result']['result'].get('value') or {}
 
                     return jsonify({
                         "success": computed_styles is not None,
@@ -346,8 +346,8 @@ def check_element_visibility():
                         ...checks,
                         basic_visible: basicVisible,
                         strict_visible: strictVisible,
-                        is_visible: {str(strict).lower()},
-                        visibility_mode: {repr('strict' if strict else 'basic')},
+                        is_visible: {str(strict).lower()} ? strictVisible : basicVisible,
+                        visibility_mode: {javascript_safe_value('strict' if strict else 'basic')},
                         bounds: {{
                             x: rect.x,
                             y: rect.y,

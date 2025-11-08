@@ -137,7 +137,7 @@ def keyboard_navigation():
             keyboard_data = {
                 "tab_order_test": tab_order,
                 "focus_visible_test": focus_visible,
-                "keyboard_analysis": keyboard_result.get('result', {}).get('value', {})
+                "keyboard_analysis": result.get('result', {}).get('result', {}).get('value', {})
             }
 
             track_endpoint_usage('keyboard_navigation', [CDPDomain.ACCESSIBILITY, CDPDomain.DOM], {
@@ -184,6 +184,7 @@ def contrast_analysis():
             client.send_command('Accessibility.enable')
             client.send_command('DOM.enable')
 
+            strict_mode = (minimum == 'AAA')
             contrast_js = AccessibilityJSTemplates.contrast_analysis_template(
                 strict_mode=strict_mode
             )
@@ -196,7 +197,7 @@ def contrast_analysis():
             contrast_data = {
                 "minimum_wcag_level": minimum,
                 "ratio_calculation": ratio_check,
-                "contrast_analysis": contrast_result.get('result', {}).get('value', {})
+                "contrast_analysis": result.get('result', {}).get('result', {}).get('value', {})
             }
 
             track_endpoint_usage('contrast_analysis', [CDPDomain.ACCESSIBILITY, CDPDomain.DOM], {
@@ -256,7 +257,7 @@ def screen_reader_simulation():
             screen_reader_data = {
                 "simulation_enabled": simulate,
                 "verbose_analysis": verbose,
-                "screen_reader_analysis": screen_reader_result.get('result', {}).get('value', {}),
+                "screen_reader_analysis": result.get('result', {}).get('result', {}).get('value', {}),
                 "accessibility_tree_size": len(accessibility_tree.get('result', {}).get('nodes', [])) if verbose else None
             }
 
@@ -309,10 +310,11 @@ def form_accessibility_analysis():
             client.send_command('Accessibility.enable')
             client.send_command('DOM.enable')
 
+            selector_safe = javascript_safe_value(selector)
             form_analysis_js = f"""
             (() => {{
                 const form_analysis = {{
-                    selector: '{selector}',
+                    selector: {selector_safe},
                     validation_check: {str(validation).lower()},
                     label_check: {str(labels).lower()},
                     forms_found: [],
@@ -321,7 +323,7 @@ def form_accessibility_analysis():
                     error_handling: []
                 }};
 
-                const forms = document.querySelectorAll('{selector}');
+                const forms = document.querySelectorAll({selector_safe});
 
                 forms.forEach((form, formIndex) => {{
                     const formData = {{

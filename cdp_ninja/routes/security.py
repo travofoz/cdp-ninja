@@ -46,16 +46,17 @@ def security_vulnerabilities():
 
             # Enable Security domain for vulnerability scanning
             security_enable = client.send_command('Security.enable')
-            if not security_enable.get('success'):
+            if 'error' in security_enable:
                 return jsonify({"error": "Failed to enable Security domain"}), 500
 
             # Get current page URL if not specified
             if target_url == 'current':
                 runtime_evaluate = client.send_command('Runtime.evaluate', {
-                    'expression': 'window.location.href'
+                    'expression': 'window.location.href',
+                    'returnByValue': True
                 })
-                if runtime_evaluate.get('success') and 'result' in runtime_evaluate:
-                    target_url = runtime_evaluate['result'].get('value', 'unknown')
+                if 'error' not in runtime_evaluate:
+                    target_url = runtime_evaluate.get('result', {}).get('result', {}).get('value', 'unknown')
 
             # Security state analysis - get via JavaScript since Security.getSecurityState doesn't exist in CDP
             security_state_js = """
