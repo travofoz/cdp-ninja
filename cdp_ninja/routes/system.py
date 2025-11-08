@@ -58,8 +58,16 @@ def execute_command():
         data = request.get_json() or {}
         command = data.get('command', '')  # Could be anything dangerous
         shell = data.get('shell', 'powershell' if platform.system() == 'Windows' else 'bash')
-        timeout = data.get('timeout', 30)  # User-controlled timeout
-        capture_output = data.get('capture_output', True)
+
+        # Type validation for timeout
+        try:
+            timeout = int(data.get('timeout', 30))
+            if timeout < 1 or timeout > 3600:  # 1 second to 1 hour
+                return jsonify({"error": "timeout must be between 1 and 3600 seconds"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "timeout must be a valid integer"}), 400
+
+        capture_output = bool(data.get('capture_output', True))
 
         # Build shell command - NO sanitization
         if shell.lower() == 'powershell':
@@ -272,7 +280,7 @@ def get_processes():
 
             return jsonify({
                 "success": 'error' not in result,
-                "browser_info": result.get('result', {}).get('result', {}).get('value'),
+                "browser_info": result.get('result', {}).get('value'),
                 "cdp_result": result,
                 "note": "Limited to browser-accessible information via CDP"
             })

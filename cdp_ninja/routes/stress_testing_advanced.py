@@ -4,6 +4,7 @@ Breaking point discovery and chaos engineering
 10 endpoints for boundary testing and structural assault
 """
 
+import json
 import logging
 from flask import Blueprint, request, jsonify
 from cdp_ninja.core.cdp_pool import get_global_pool
@@ -45,8 +46,6 @@ def click_storm():
         try:
             data = request.get_json() or {}
             raw_target = data.get('target')
-            count = data.get('count', 100)
-            interval = data.get('interval', 10)
 
             if not raw_target:
                 return jsonify({"error": "target selector required"}), 400
@@ -56,6 +55,21 @@ def click_storm():
                 target = validate_selector(raw_target)
             except ValidationError as e:
                 return jsonify({"error": str(e), "validation_failed": True}), 400
+
+            # Type validation for count and interval
+            try:
+                count = int(data.get('count', 100))
+                if count < 1 or count > 10000:
+                    return jsonify({"error": "count must be between 1 and 10000"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "count must be a valid integer"}), 400
+
+            try:
+                interval = int(data.get('interval', 10))
+                if interval < 1 or interval > 10000:
+                    return jsonify({"error": "interval must be between 1 and 10000 milliseconds"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "interval must be a valid integer"}), 400
 
             client.send_command('DOM.enable')
             client.send_command('Input.enable') if hasattr(client, 'send_command') else None
@@ -227,9 +241,22 @@ def memory_bomb():
 
         try:
             data = request.get_json() or {}
-            size_mb = data.get('size_mb', 100)
+
+            # Type validation for size_mb
+            try:
+                size_mb = int(data.get('size_mb', 100))
+                if size_mb < 1 or size_mb > 1000:
+                    return jsonify({"error": "size_mb must be between 1 and 1000 MB"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "size_mb must be a valid integer"}), 400
+
+            # Validate allocate_rate
             allocate_rate = data.get('allocate_rate', 'fast')
-            monitor = data.get('monitor', True)
+            allowed_rates = ['slow', 'medium', 'fast']
+            if allocate_rate not in allowed_rates:
+                return jsonify({"error": f"Invalid allocate_rate. Must be one of: {', '.join(allowed_rates)}"}), 400
+
+            monitor = bool(data.get('monitor', True))
 
             client.send_command('Runtime.enable')
             client.send_command('HeapProfiler.enable') if monitor else None
@@ -466,9 +493,22 @@ def cpu_burn():
 
         try:
             data = request.get_json() or {}
-            duration = data.get('duration', 5000)
+
+            # Type validation for duration
+            try:
+                duration = int(data.get('duration', 5000))
+                if duration < 100 or duration > 300000:
+                    return jsonify({"error": "duration must be between 100 and 300000 milliseconds"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "duration must be a valid integer"}), 400
+
+            # Validate intensity
             intensity = data.get('intensity', 'high')
-            block_main_thread = data.get('block_main_thread', True)
+            allowed_intensities = ['low', 'medium', 'high']
+            if intensity not in allowed_intensities:
+                return jsonify({"error": f"Invalid intensity. Must be one of: {', '.join(allowed_intensities)}"}), 400
+
+            block_main_thread = bool(data.get('block_main_thread', True))
 
             client.send_command('Runtime.enable')
 
@@ -705,18 +745,26 @@ def input_overflow():
         try:
             data = request.get_json() or {}
             selector = data.get('selector')
-            payload_size = data.get('payload_size', 10000)
-            special_chars = data.get('special_chars', True)
 
             if not selector:
                 return jsonify({"error": "selector required"}), 400
+
+            # Type validation for payload_size
+            try:
+                payload_size = int(data.get('payload_size', 10000))
+                if payload_size < 1 or payload_size > 1000000:
+                    return jsonify({"error": "payload_size must be between 1 and 1000000 characters"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "payload_size must be a valid integer"}), 400
+
+            special_chars = bool(data.get('special_chars', True))
 
             client.send_command('DOM.enable')
 
             input_overflow_js = f"""
             (() => {{
                 const results = {{
-                    selector: '{selector}',
+                    selector: {javascript_safe_value(json.dumps(selector))},
                     payload_size_requested: {payload_size},
                     include_special_chars: {str(special_chars).lower()},
                     input_tests: [],
@@ -745,7 +793,7 @@ def input_overflow():
                 const payload = basePayload.substring(0, {payload_size});
 
                 // Find target input fields
-                const inputs = document.querySelectorAll('{selector}');
+                const inputs = document.querySelectorAll({javascript_safe_value(json.dumps(selector))});
                 results.input_tests = [];
 
                 if (inputs.length === 0) {{
@@ -947,6 +995,11 @@ def storage_flood():
             storage_type = data.get('type', 'localStorage')
             fill_to_limit = data.get('fill_to_limit', True)
             oversized_values = data.get('oversized_values', True)
+
+            # Validate storage_type parameter
+            allowed_storage_types = ['localStorage', 'sessionStorage', 'indexedDB']
+            if storage_type not in allowed_storage_types:
+                return jsonify({"error": f"Invalid storage_type. Must be one of: {', '.join(allowed_storage_types)}"}), 400
 
             client.send_command('Runtime.enable')
 
@@ -1229,10 +1282,18 @@ def chaos_monkey():
 
         try:
             data = request.get_json() or {}
-            duration = data.get('duration', 30000)
-            random_clicks = data.get('random_clicks', True)
-            random_inputs = data.get('random_inputs', True)
-            unpredictable = data.get('unpredictable', True)
+
+            # Type validation with bounds checking
+            try:
+                duration = int(data.get('duration', 30000))
+                if duration < 100 or duration > 300000:  # 100ms to 5 minutes
+                    return jsonify({"error": "duration must be between 100 and 300000 milliseconds"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "duration must be a valid integer"}), 400
+
+            random_clicks = bool(data.get('random_clicks', True))
+            random_inputs = bool(data.get('random_inputs', True))
+            unpredictable = bool(data.get('unpredictable', True))
 
             client.send_command('DOM.enable')
             client.send_command('Runtime.enable')
@@ -1611,9 +1672,9 @@ def race_conditions():
 
         try:
             data = request.get_json() or {}
-            async_operations = data.get('async_operations', True)
-            timing_attacks = data.get('timing_attacks', True)
-            concurrent_mutations = data.get('concurrent_mutations', True)
+            async_operations = bool(data.get('async_operations', True))
+            timing_attacks = bool(data.get('timing_attacks', True))
+            concurrent_mutations = bool(data.get('concurrent_mutations', True))
 
             client.send_command('Runtime.enable')
 
@@ -2019,11 +2080,19 @@ def full_assault():
 
         try:
             data = request.get_json() or {}
-            memory = data.get('memory', True)
-            cpu = data.get('cpu', True)
-            network = data.get('network', True)
-            interactions = data.get('interactions', True)
-            duration = data.get('duration', 15000)
+
+            # Type validation with bounds checking
+            try:
+                duration = int(data.get('duration', 15000))
+                if duration < 100 or duration > 300000:  # 100ms to 5 minutes
+                    return jsonify({"error": "duration must be between 100 and 300000 milliseconds"}), 400
+            except (ValueError, TypeError):
+                return jsonify({"error": "duration must be a valid integer"}), 400
+
+            memory = bool(data.get('memory', True))
+            cpu = bool(data.get('cpu', True))
+            network = bool(data.get('network', True))
+            interactions = bool(data.get('interactions', True))
 
             client.send_command('DOM.enable')
             client.send_command('Runtime.enable')
