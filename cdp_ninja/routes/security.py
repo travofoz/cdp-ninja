@@ -165,8 +165,8 @@ def security_vulnerabilities():
             vulnerability_data = {
                 "target_url": target_url,
                 "security_state": security_state.get('result', {}),
-                "mixed_content_analysis": mixed_content_result.get('result', {}).get('value', {}),
-                "scan_timestamp": mixed_content_result.get('result', {}).get('value', {}).get('scan_timestamp'),
+                "mixed_content_analysis": mixed_content_result.get('result', {}).get('result', {}).get('value', {}),
+                "scan_timestamp": mixed_content_result.get('result', {}).get('result', {}).get('value', {}).get('scan_timestamp'),
             }
 
             # Add recommendations if requested
@@ -328,7 +328,7 @@ def authentication_analysis():
 
             auth_data = {
                 "auth_type_requested": auth_type,
-                "authentication_analysis": auth_result.get('result', {}).get('value', {}),
+                "authentication_analysis": auth_result.get('result', {}).get('result', {}).get('value', {}),
                 "check_headers": check_headers
             }
 
@@ -370,7 +370,7 @@ def authentication_analysis():
                     'returnByValue': True
                 })
 
-                auth_data['security_headers'] = headers_result.get('result', {}).get('value', {})
+                auth_data['security_headers'] = headers_result.get('result', {}).get('result', {}).get('value', {})
 
             track_endpoint_usage('authentication_analysis', [CDPDomain.SECURITY, CDPDomain.NETWORK], {
                 'auth_type': auth_type,
@@ -553,7 +553,7 @@ def data_protection_analysis():
             })
 
             protection_data = {
-                "data_protection_analysis": protection_result.get('result', {}).get('value', {}),
+                "data_protection_analysis": protection_result.get('result', {}).get('result', {}).get('value', {}),
                 "analysis_scope": {
                     "forms_checked": check_forms,
                     "storage_checked": check_storage
@@ -754,7 +754,7 @@ def threat_assessment():
 
             threat_data = {
                 "focus_area": focus_area,
-                "threat_assessment": threat_result.get('result', {}).get('value', {}),
+                "threat_assessment": threat_result.get('result', {}).get('result', {}).get('value', {}),
                 "include_mitigation": include_mitigation
             }
 
@@ -1017,7 +1017,7 @@ def penetration_test():
             pen_test_data = {
                 "test_type": test_type,
                 "safe_mode": safe_mode,
-                "penetration_test": pen_test_result.get('result', {}).get('value', {}),
+                "penetration_test": pen_test_result.get('result', {}).get('result', {}).get('value', {}),
                 "ethical_testing_notice": "All tests performed are read-only and non-destructive"
             }
 
@@ -1215,7 +1215,7 @@ def compliance_check():
             compliance_data = {
                 "standard": standard,
                 "detailed_report": detailed_report,
-                "compliance_check": compliance_result.get('result', {}).get('value', {})
+                "compliance_check": compliance_result.get('result', {}).get('result', {}).get('value', {})
             }
 
             # Add additional compliance guidance if detailed report requested
@@ -1466,7 +1466,7 @@ def ethical_hacking():
             ethical_data = {
                 "technique": technique,
                 "documentation_mode": documentation_mode,
-                "ethical_assessment": ethical_result.get('result', {}).get('value', {}),
+                "ethical_assessment": ethical_result.get('result', {}).get('result', {}).get('value', {}),
                 "ethical_guidelines": {
                     "purpose": "Defensive security assessment only",
                     "scope": "White-box security analysis",
@@ -1764,7 +1764,7 @@ def protection_validation():
             validation_data = {
                 "protection_type": protection_type,
                 "generate_report": generate_report,
-                "protection_validation": validation_result.get('result', {}).get('value', {})
+                "protection_validation": validation_result.get('result', {}).get('result', {}).get('value', {})
             }
 
             # Generate comprehensive report if requested
