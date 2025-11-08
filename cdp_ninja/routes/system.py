@@ -7,7 +7,7 @@ import logging
 import subprocess
 import platform
 from flask import Blueprint, jsonify, request
-from cdp_ninja.core import get_global_pool
+from cdp_ninja.core.cdp_pool import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
 from cdp_ninja.config import config
 
@@ -151,7 +151,7 @@ def execute_command():
             "error": str(e),
             "command": data.get('command'),
             "shell": data.get('shell'),
-            "crash_id": crash_data.get('timestamp'),
+            "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp'),
             "security_note": "Command execution is intentionally dangerous"
         }), 500
 
@@ -183,9 +183,12 @@ def get_system_info():
             # Check if PowerShell is actually available
             try:
                 subprocess.run(['powershell.exe', '-Command', 'echo test'],
-                             capture_output=True, timeout=5)
+                             capture_output=True, text=True, timeout=5)
                 system_info["powershell_available"] = True
-            except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError) as e:
+            except subprocess.TimeoutExpired:
+                logger.debug("PowerShell availability check timed out")
+                system_info["powershell_available"] = False
+            except (FileNotFoundError, subprocess.SubprocessError) as e:
                 logger.debug(f"PowerShell availability check failed: {e}")
                 system_info["powershell_available"] = False
         else:
@@ -194,9 +197,12 @@ def get_system_info():
             # Check bash availability
             try:
                 subprocess.run(['/bin/bash', '--version'],
-                             capture_output=True, timeout=5)
+                             capture_output=True, text=True, timeout=5)
                 system_info["bash_available"] = True
-            except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError) as e:
+            except subprocess.TimeoutExpired:
+                logger.debug("Bash availability check timed out")
+                system_info["bash_available"] = False
+            except (FileNotFoundError, subprocess.SubprocessError) as e:
                 logger.debug(f"Bash availability check failed: {e}")
                 system_info["bash_available"] = False
 
@@ -214,7 +220,7 @@ def get_system_info():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "crash_id": crash_data.get('timestamp')
+            "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp')
         }), 500
 
 
@@ -283,7 +289,7 @@ def get_processes():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "crash_id": crash_data.get('timestamp')
+            "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp')
         }), 500
 
 
@@ -326,7 +332,7 @@ def get_chrome_info():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "crash_id": crash_data.get('timestamp'),
+            "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp'),
             "possible_causes": [
                 "Chrome not running with debugging enabled",
                 "CDP connection lost",
