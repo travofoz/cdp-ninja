@@ -40,6 +40,10 @@ def analyze_exceptions():
     // Filter specific errors
     GET /cdp/errors/exceptions?filter=TypeError&time_window=5
     """
+    error_filter = ''
+    include_stack = False
+    detailed_analysis = False
+    time_window = 30
     try:
         params = parse_request_params(request, ['filter', 'include_stack', 'detailed_analysis', 'time_window'])
         error_filter = params['filter'] or ''
@@ -212,7 +216,7 @@ def analyze_exceptions():
                 'timeout': 10000
             })
 
-            exception_data = result.get('result', {}).get('result', {}).get('value')
+            exception_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("analyze_exceptions", [CDPDomain.RUNTIME, CDPDomain.CONSOLE], params)
@@ -404,7 +408,7 @@ def track_promise_errors():
                 'timeout': (monitoring_duration + 5) * 1000
             })
 
-            promise_data = result.get('result', {}).get('result', {}).get('value')
+            promise_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("track_promise_errors", [CDPDomain.RUNTIME], params)
@@ -588,7 +592,7 @@ def simulate_errors():
                 'timeout': 10000
             })
 
-            simulation_data = result.get('result', {}).get('result', {}).get('value')
+            simulation_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("simulate_errors", [CDPDomain.RUNTIME], data)
@@ -844,7 +848,7 @@ def test_state_corruption():
                 'timeout': 15000
             })
 
-            corruption_data = result.get('result', {}).get('result', {}).get('value')
+            corruption_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("test_state_corruption", [CDPDomain.RUNTIME, CDPDomain.DOM], data)
@@ -1090,7 +1094,7 @@ def test_error_boundaries():
                     'timeout': 15000
                 })
 
-            boundary_data = result.get('result', {}).get('result', {}).get('value')
+            boundary_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("test_error_boundaries", [CDPDomain.RUNTIME], data)
@@ -1351,7 +1355,7 @@ def detect_memory_leaks():
                 'timeout': (monitoring_duration + 10) * 1000
             })
 
-            memory_data = result.get('result', {}).get('result', {}).get('value')
+            memory_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("detect_memory_leaks", [CDPDomain.RUNTIME], params)
@@ -1624,7 +1628,7 @@ def analyze_error_performance_impact():
                 'timeout': 30000
             })
 
-            performance_data = result.get('result', {}).get('result', {}).get('value')
+            performance_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("analyze_error_performance_impact", [CDPDomain.RUNTIME], params)
@@ -1924,7 +1928,7 @@ def validate_error_recovery():
                 'timeout': 60000
             })
 
-            recovery_data = result.get('result', {}).get('result', {}).get('value')
+            recovery_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("validate_error_recovery", [CDPDomain.RUNTIME], data)

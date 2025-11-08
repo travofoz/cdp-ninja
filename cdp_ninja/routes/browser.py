@@ -45,6 +45,7 @@ def click_element():
     // Double-click
     {"selector": "#button", "clickCount": 2}
     """
+    data = {}
     try:
         data = request.get_json() or {}
         pool = get_global_pool()
@@ -79,9 +80,9 @@ def click_element():
                     'returnByValue': True
                 })
 
-                # Extract the actual result from triple-nested CDP response
+                # Extract the actual result from CDP response
                 if 'result' in result:
-                    result = result.get('result', {}).get('result', {}).get('value', result)
+                    result = result.get('result', {}).get('value', result)
 
             elif 'x' in data and 'y' in data:
                 # Validate coordinates

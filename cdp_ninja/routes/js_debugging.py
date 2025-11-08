@@ -57,6 +57,8 @@ def advanced_javascript_debugging():
       "scope_analysis": true
     }
     """
+    data = {}
+    expression = ''
     try:
         data = request.get_json() or {}
         expression = validate_text_input(data.get('expression', ''), 'expression')

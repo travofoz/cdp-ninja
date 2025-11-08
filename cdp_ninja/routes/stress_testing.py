@@ -45,6 +45,7 @@ def memory_stress_test():
       "monitor_performance": true
     }
     """
+    data = {}
     try:
         data = request.get_json() or {}
 
@@ -227,7 +228,7 @@ def memory_stress_test():
                 'timeout': 30000  # 30 second timeout for stress test
             })
 
-            stress_data = result.get('result', {}).get('result', {}).get('value')
+            stress_data = result.get('result', {}).get('value')
 
             # Force garbage collection after stress test
             gc_result = cdp.send_command('Runtime.evaluate', {
@@ -238,7 +239,7 @@ def memory_stress_test():
             return jsonify({
                 "success": stress_data is not None and stress_data.get("success", False),
                 "stress_test_results": stress_data,
-                "garbage_collection": gc_result.get('result', {}).get('result', {}).get('value'),
+                "garbage_collection": gc_result.get('result', {}).get('value'),
                 "test_parameters": {
                     "allocation_mb": allocation_mb,
                     "iterations": iterations,
@@ -498,7 +499,7 @@ def cpu_stress_test():
                 'timeout': duration_ms + 10000  # Add buffer to CDP timeout
             })
 
-            stress_data = result.get('result', {}).get('result', {}).get('value')
+            stress_data = result.get('result', {}).get('value')
 
             return jsonify({
                 "success": stress_data is not None and stress_data.get("success", False),

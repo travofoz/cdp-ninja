@@ -69,10 +69,10 @@ def _parse_request_params(request, param_names):
     @returns dict of parameters
     """
     if request.method == 'GET':
-        return {name: request.args.get(name) for name in param_names}
+        return {name: request.args.get(name) or None for name in param_names}
     else:
         data = request.get_json() or {}
-        return {name: data.get(name) for name in param_names}
+        return {name: data.get(name) or None for name in param_names}
 
 
 @dom_advanced_routes.route('/cdp/dom/get_bounds', methods=['GET', 'POST'])
@@ -95,6 +95,8 @@ def get_element_bounds():
     // Malformed selector - test what breaks
     GET /cdp/dom/get_bounds?selector=>>>invalid<<<
     """
+    selector = ''
+    node_id = None
     try:
         params = _parse_request_params(request, ['selector', 'nodeId'])
         selector = params['selector'] or ''
@@ -166,6 +168,9 @@ def get_computed_style():
     // Malformed selector
     GET /cdp/dom/get_style?selector=>>>bad<<<
     """
+    selector = ''
+    node_id = None
+    properties = []
     try:
         params = _parse_request_params(request, ['selector', 'nodeId'])
         selector = params['selector'] or ''
@@ -301,12 +306,12 @@ def check_element_visibility():
         if request.method == 'GET':
             selector = request.args.get('selector', '')
             node_id = request.args.get('nodeId')
-            strict = request.args.get('strict', 'false').lower() == 'true'
+            strict = validate_boolean_param(request.args.get('strict', False))
         else:
             data = request.get_json() or {}
             selector = data.get('selector', '')
             node_id = data.get('nodeId')
-            strict = data.get('strict', False)
+            strict = validate_boolean_param(data.get('strict', False))
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -375,7 +380,7 @@ def check_element_visibility():
                 'returnByValue': True
             })
 
-            visibility_data = result.get('result', {}).get('result', {}).get('value')
+            visibility_data = result.get('result', {}).get('value')
 
             return jsonify({
                 "success": visibility_data is not None,
@@ -665,7 +670,7 @@ def get_parent_node():
                 'returnByValue': True
             })
 
-            parent_data = result.get('result', {}).get('result', {}).get('value')
+            parent_data = result.get('result', {}).get('value')
 
             return jsonify({
                 "success": parent_data is not None,

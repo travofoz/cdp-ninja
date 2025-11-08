@@ -126,7 +126,7 @@ def analyze_network_timing():
                 'returnByValue': True
             })
 
-            timing_data = result.get('result', {}).get('result', {}).get('value')
+            timing_data = result.get('result', {}).get('value')
 
             return jsonify({
                 "success": timing_data is not None,
@@ -249,7 +249,7 @@ def monitor_websockets():
                 'returnByValue': True
             })
 
-            websocket_data = result.get('result', {}).get('result', {}).get('value')
+            websocket_data = result.get('result', {}).get('value')
 
             return jsonify({
                 "success": websocket_data is not None,
@@ -378,7 +378,7 @@ def analyze_cache():
                 'returnByValue': True
             })
 
-            cache_data = result.get('result', {}).get('result', {}).get('value')
+            cache_data = result.get('result', {}).get('value')
             if cache_data:
                 cache_analysis.update(cache_data)
 
@@ -506,7 +506,7 @@ def detect_cors_violations():
                 'returnByValue': True
             })
 
-            cors_data = result.get('result', {}).get('result', {}).get('value')
+            cors_data = result.get('result', {}).get('value')
 
             return jsonify({
                 "success": cors_data is not None,

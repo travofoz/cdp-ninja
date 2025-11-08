@@ -34,6 +34,7 @@ def click_storm():
     @body {number} [interval=10] - Milliseconds between clicks
     @returns {object} Click storm results with performance impact and errors
     """
+    target = None
     try:
         pool = get_global_pool()
         if not pool:
@@ -230,6 +231,7 @@ def memory_bomb():
     @body {boolean} [monitor=true] - Monitor memory usage during test
     @returns {object} Memory stress test results with allocation patterns and system impact
     """
+    size_mb = 100
     try:
         pool = get_global_pool()
         if not pool:
@@ -482,6 +484,7 @@ def cpu_burn():
     @body {boolean} [block_main_thread=true] - Whether to block main thread
     @returns {object} CPU stress test results with performance metrics and system impact
     """
+    duration = 5000
     try:
         pool = get_global_pool()
         if not pool:
@@ -733,6 +736,7 @@ def input_overflow():
     @body {boolean} [special_chars=true] - Include special characters
     @returns {object} Input overflow test results with field behavior and limitations
     """
+    selector = None
     try:
         pool = get_global_pool()
         if not pool:
@@ -981,6 +985,7 @@ def storage_flood():
     @body {boolean} [oversized_values=true] - Use oversized values to test limits
     @returns {object} Storage flood results with capacity limits and performance impact
     """
+    storage_type = 'localStorage'
     try:
         pool = get_global_pool()
         if not pool:
@@ -1271,6 +1276,7 @@ def chaos_monkey():
     @body {boolean} [unpredictable=true] - Enable truly chaotic behavior
     @returns {object} Chaos monkey results with system stability analysis and discovered issues
     """
+    duration = 30000
     try:
         pool = get_global_pool()
         if not pool:
@@ -1661,6 +1667,7 @@ def race_conditions():
     @body {boolean} [concurrent_mutations=true] - Test concurrent DOM mutations
     @returns {object} Race condition test results with timing analysis and concurrency issues
     """
+    async_operations = True
     try:
         pool = get_global_pool()
         if not pool:
@@ -2069,6 +2076,7 @@ def full_assault():
     @body {number} [duration=15000] - Total assault duration in milliseconds
     @returns {object} Full assault results with comprehensive system stress analysis
     """
+    duration = 15000
     try:
         pool = get_global_pool()
         if not pool:

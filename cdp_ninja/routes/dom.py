@@ -152,16 +152,27 @@ def query_selector():
                 """
 
             if include_details:
-                code = code.replace(
-                    'textContent: el.textContent',
-                    '''textContent: el.textContent ? el.textContent.substring(0, 200) : '',
-                    attributes: Array.from(el.attributes).reduce((acc, attr) => {
-                        acc[attr.name] = attr.value;
-                        return acc;
-                    }, {}),
-                    boundingRect: el.getBoundingClientRect(),
-                    style: window.getComputedStyle(el).cssText'''
-                )
+                # Build detailed code directly instead of string replacement
+                code = f"""
+                    (() => {{
+                        const el = document.querySelector({javascript_safe_value(selector)});
+                        if (!el) return null;
+                        return {{
+                            tagName: el.tagName,
+                            id: el.id,
+                            className: el.className,
+                            textContent: el.textContent ? el.textContent.substring(0, 200) : '',
+                            innerHTML: el.innerHTML ? el.innerHTML.substring(0, 500) : '',
+                            outerHTML: el.outerHTML ? el.outerHTML.substring(0, 1000) : '',
+                            attributes: Array.from(el.attributes).reduce((acc, attr) => {{
+                                acc[attr.name] = attr.value;
+                                return acc;
+                            }}, {{}}),
+                            boundingRect: el.getBoundingClientRect(),
+                            style: window.getComputedStyle(el).cssText
+                        }};
+                    }})()
+                """
 
             result = cdp.send_command('Runtime.evaluate', {
                 'expression': code,
@@ -173,7 +184,7 @@ def query_selector():
                 "selector": selector,
                 "query_all": query_all,
                 "include_details": include_details,
-                "elements": result.get('result', {}).get('result', {}).get('value')
+                "elements": result.get('result', {}).get('value')
             })
 
         finally:
@@ -261,7 +272,7 @@ def fill_form():
                         'returnByValue': True
                     })
 
-                    success = result.get('result', {}).get('result', {}).get('value', False)
+                    success = result.get('result', {}).get('value', False)
 
                     results.append({
                         "field": selector,
@@ -479,7 +490,7 @@ def get_form_values():
                             'returnByValue': True
                         })
 
-                        values[selector] = result.get('result', {}).get('result', {}).get('value')
+                        values[selector] = result.get('result', {}).get('value')
 
                     except Exception as field_error:
                         values[selector] = {"error": str(field_error)}

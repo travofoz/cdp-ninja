@@ -13,6 +13,7 @@ from cdp_ninja.routes.route_utils import (
     ensure_domain_available, create_domain_error_response, create_success_response,
     handle_cdp_error, parse_request_params, track_endpoint_usage, PERFORMANCE_DOMAINS
 )
+from cdp_ninja.routes.input_validation import validate_boolean_param
 from cdp_ninja.templates.performance_js import PerformanceJSTemplates
 
 logger = logging.getLogger(__name__)
@@ -43,11 +44,16 @@ def collect_performance_metrics():
       "duration": 5
     }
     """
+    params = {}
+    include_paint = False
+    include_navigation = False
+    include_resource = False
+    duration = 3
     try:
         params = parse_request_params(request, ['include_paint', 'include_navigation', 'include_resource', 'duration'])
-        include_paint = params['include_paint'] in [True, 'true', '1']
-        include_navigation = params['include_navigation'] in [True, 'true', '1']
-        include_resource = params['include_resource'] in [True, 'true', '1']
+        include_paint = validate_boolean_param(params.get('include_paint', False))
+        include_navigation = validate_boolean_param(params.get('include_navigation', False))
+        include_resource = validate_boolean_param(params.get('include_resource', False))
         try:
             duration = int(params['duration'] or 3)
         except (ValueError, TypeError):
@@ -79,7 +85,7 @@ def collect_performance_metrics():
                 'timeout': (duration + 10) * 1000
             })
 
-            metrics_data = result.get('result', {}).get('result', {}).get('value')
+            metrics_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("collect_performance_metrics", [CDPDomain.PERFORMANCE, CDPDomain.RUNTIME], params)
@@ -125,6 +131,11 @@ def monitor_memory_usage():
       "detect_leaks": true
     }
     """
+    params = {}
+    monitoring_duration = 10
+    sample_interval = 500
+    track_allocations = False
+    detect_leaks = False
     try:
         params = parse_request_params(request, ['monitoring_duration', 'sample_interval', 'track_allocations', 'detect_leaks'])
         try:
@@ -135,8 +146,8 @@ def monitor_memory_usage():
             sample_interval = int(params['sample_interval'] or 500)
         except (ValueError, TypeError):
             sample_interval = 500
-        track_allocations = params['track_allocations'] in [True, 'true', '1']
-        detect_leaks = params['detect_leaks'] in [True, 'true', '1']
+        track_allocations = validate_boolean_param(params.get('track_allocations', False))
+        detect_leaks = validate_boolean_param(params.get('detect_leaks', False))
 
         # Ensure required domains
         if not ensure_domain_available(CDPDomain.PERFORMANCE, "monitor_memory_usage"):
@@ -164,7 +175,7 @@ def monitor_memory_usage():
                 'timeout': (monitoring_duration + 10) * 1000
             })
 
-            memory_data = result.get('result', {}).get('result', {}).get('value')
+            memory_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("monitor_memory_usage", [CDPDomain.PERFORMANCE, CDPDomain.RUNTIME], params)
@@ -216,9 +227,9 @@ def analyze_rendering_performance():
             monitoring_duration = int(params['monitoring_duration'] or 5)
         except (ValueError, TypeError):
             monitoring_duration = 5
-        track_frame_rate = params['track_frame_rate'] in [True, 'true', '1']
-        analyze_paint_events = params['analyze_paint_events'] in [True, 'true', '1']
-        detect_jank = params['detect_jank'] in [True, 'true', '1']
+        track_frame_rate = validate_boolean_param(params.get('track_frame_rate', False))
+        analyze_paint_events = validate_boolean_param(params.get('analyze_paint_events', False))
+        detect_jank = validate_boolean_param(params.get('detect_jank', False))
 
         # Ensure required domains
         if not ensure_domain_available(CDPDomain.PERFORMANCE, "analyze_rendering_performance"):
@@ -454,7 +465,7 @@ def analyze_rendering_performance():
                 'timeout': (monitoring_duration + 10) * 1000
             })
 
-            rendering_data = result.get('result', {}).get('result', {}).get('value')
+            rendering_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("analyze_rendering_performance", [CDPDomain.PERFORMANCE], params)
@@ -506,8 +517,8 @@ def profile_cpu_usage():
             profiling_duration = int(data.get('profiling_duration', 5))
         except (ValueError, TypeError):
             profiling_duration = 5
-        sample_stack_traces = data.get('sample_stack_traces', False)
-        analyze_hot_functions = data.get('analyze_hot_functions', False)
+        sample_stack_traces = validate_boolean_param(data.get('sample_stack_traces', False))
+        analyze_hot_functions = validate_boolean_param(data.get('analyze_hot_functions', False))
         profiling_mode = data.get('profiling_mode', 'sampling')
 
         # Ensure required domains
@@ -741,7 +752,7 @@ def profile_cpu_usage():
             stop_result = cdp.send_command('Profiler.stop')
 
             profiling_data = {
-                "cpu_analysis": analysis_result.get('result', {}).get('result', {}).get('value'),
+                "cpu_analysis": analysis_result.get('result', {}).get('value'),
                 "profiler_data": stop_result.get('result', {}).get('profile', {}) if 'result' in stop_result else {}
             }
 
@@ -798,8 +809,8 @@ def analyze_resource_timing():
             analysis_period = int(params['analysis_period'] or 5)
         except (ValueError, TypeError):
             analysis_period = 5
-        include_third_party = params['include_third_party'] in [True, 'true', '1']
-        detect_blocking = params['detect_blocking'] in [True, 'true', '1']
+        include_third_party = validate_boolean_param(params.get('include_third_party', False))
+        detect_blocking = validate_boolean_param(params.get('detect_blocking', False))
         resource_filter = params['resource_filter'] or 'all'
 
         # Ensure required domains
@@ -824,7 +835,7 @@ def analyze_resource_timing():
                 'timeout': 15000
             })
 
-            resource_data = result.get('result', {}).get('result', {}).get('value')
+            resource_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("analyze_resource_timing", [CDPDomain.PERFORMANCE, CDPDomain.RUNTIME], params)
@@ -876,9 +887,9 @@ def monitor_background_tasks():
             monitoring_duration = int(params['monitoring_duration'] or 8)
         except (ValueError, TypeError):
             monitoring_duration = 8
-        track_service_workers = params['track_service_workers'] in [True, 'true', '1']
-        monitor_web_workers = params['monitor_web_workers'] in [True, 'true', '1']
-        detect_heavy_tasks = params['detect_heavy_tasks'] in [True, 'true', '1']
+        track_service_workers = validate_boolean_param(params.get('track_service_workers', False))
+        monitor_web_workers = validate_boolean_param(params.get('monitor_web_workers', False))
+        detect_heavy_tasks = validate_boolean_param(params.get('detect_heavy_tasks', False))
 
         # Ensure required domains
         if not ensure_domain_available(CDPDomain.RUNTIME, "monitor_background_tasks"):
@@ -1164,7 +1175,7 @@ def monitor_background_tasks():
                 'timeout': (monitoring_duration + 15) * 1000
             })
 
-            background_data = result.get('result', {}).get('result', {}).get('value')
+            background_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("monitor_background_tasks", [CDPDomain.RUNTIME], params)
@@ -1212,9 +1223,9 @@ def generate_optimization_recommendations():
     """
     try:
         params = parse_request_params(request, ['analyze_resources', 'analyze_scripts', 'analyze_styles', 'priority_filter'])
-        analyze_resources = params['analyze_resources'] in [True, 'true', '1']
-        analyze_scripts = params['analyze_scripts'] in [True, 'true', '1']
-        analyze_styles = params['analyze_styles'] in [True, 'true', '1']
+        analyze_resources = validate_boolean_param(params.get('analyze_resources', False))
+        analyze_scripts = validate_boolean_param(params.get('analyze_scripts', False))
+        analyze_styles = validate_boolean_param(params.get('analyze_styles', False))
         priority_filter = params['priority_filter'] or 'all'
 
         # Ensure required domains
@@ -1574,7 +1585,7 @@ def generate_optimization_recommendations():
                 'timeout': 20000
             })
 
-            optimization_data = result.get('result', {}).get('result', {}).get('value')
+            optimization_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("generate_optimization_recommendations", [CDPDomain.RUNTIME], params)
@@ -1626,8 +1637,8 @@ def monitor_core_web_vitals():
             monitoring_duration = int(params['monitoring_duration'] or 10)
         except (ValueError, TypeError):
             monitoring_duration = 10
-        track_all_vitals = params['track_all_vitals'] in [True, 'true', '1']
-        provide_recommendations = params['provide_recommendations'] in [True, 'true', '1']
+        track_all_vitals = validate_boolean_param(params.get('track_all_vitals', False))
+        provide_recommendations = validate_boolean_param(params.get('provide_recommendations', False))
         sample_rate = float(params['sample_rate'] or 1)
 
         # Ensure required domains
@@ -1640,7 +1651,9 @@ def monitor_core_web_vitals():
         try:
             # Core Web Vitals monitoring code
             vitals_monitoring_code = PerformanceJSTemplates.monitor_core_web_vitals_template(
-                monitoring_duration=monitoring_duration
+                monitoring_duration=monitoring_duration,
+                track_all_vitals=track_all_vitals,
+                provide_recommendations=provide_recommendations
             )
 
             result = cdp.send_command('Runtime.evaluate', {
@@ -1650,7 +1663,7 @@ def monitor_core_web_vitals():
                 'timeout': (monitoring_duration + 15) * 1000
             })
 
-            vitals_data = result.get('result', {}).get('result', {}).get('value')
+            vitals_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("monitor_core_web_vitals", [CDPDomain.RUNTIME], params)
@@ -1709,11 +1722,12 @@ def track_performance_budget():
             import json as json_module
             try:
                 budget_limits = json_module.loads(budget_limits)
-            except:
+            except (json_module.JSONDecodeError, ValueError, TypeError) as e:
+                logger.debug(f"Failed to parse budget_limits JSON: {e}")
                 budget_limits = {}
 
-        track_overtime = params['track_overtime'] in [True, 'true', '1']
-        alert_on_violation = params['alert_on_violation'] in [True, 'true', '1']
+        track_overtime = validate_boolean_param(params.get('track_overtime', False))
+        alert_on_violation = validate_boolean_param(params.get('alert_on_violation', False))
         budget_scope = params['budget_scope'] or 'page'
 
         # Ensure required domains
@@ -1735,7 +1749,7 @@ def track_performance_budget():
                 'timeout': 15000
             })
 
-            budget_data = result.get('result', {}).get('result', {}).get('value')
+            budget_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("track_performance_budget", [CDPDomain.RUNTIME], params)
@@ -1813,7 +1827,7 @@ def measure_optimization_impact():
             current_metrics = cdp.send_command('Runtime.evaluate', {
                 'expression': current_metrics_code,
                 'returnByValue': True
-            }).get('result', {}).get('result', {}).get('value', {})
+            }).get('result', {}).get('value', {})
 
             impact_measurement_code = PerformanceJSTemplates.measure_optimization_impact_template(
                 before_snapshot=baseline_metrics,
@@ -1826,7 +1840,7 @@ def measure_optimization_impact():
                 'timeout': 15000
             })
 
-            impact_data = result.get('result', {}).get('result', {}).get('value')
+            impact_data = result.get('result', {}).get('value')
 
             # Track endpoint usage
             track_endpoint_usage("measure_optimization_impact", [CDPDomain.RUNTIME], data)

@@ -29,6 +29,8 @@ def security_vulnerabilities():
     @param {boolean} [include_recommendations=true] - Include fix recommendations
     @returns {object} Vulnerability assessment report with findings and severity levels
     """
+    target_url = 'current'
+    include_recommendations = True
     try:
         pool = get_global_pool()
         if not pool:
@@ -187,8 +189,8 @@ def security_vulnerabilities():
             vulnerability_data = {
                 "target_url": target_url,
                 "security_state": security_state.get('result', {}),
-                "mixed_content_analysis": mixed_content_result.get('result', {}).get('result', {}).get('value', {}),
-                "scan_timestamp": mixed_content_result.get('result', {}).get('result', {}).get('value', {}).get('scan_timestamp'),
+                "mixed_content_analysis": mixed_content_result.get('result', {}).get('value', {}),
+                "scan_timestamp": mixed_content_result.get('result', {}).get('value', {}).get('scan_timestamp'),
             }
 
             # Add recommendations if requested
@@ -786,16 +788,17 @@ def threat_assessment():
                 'returnByValue': True
             })
 
+            threat_assessment_value = threat_result.get('result', {}).get('value', {})
+
             threat_data = {
                 "focus_area": focus_area,
-                "threat_assessment": threat_result.get('result', {}).get('value', {}),
+                "threat_assessment": threat_assessment_value,
                 "include_mitigation": include_mitigation
             }
 
             # Add mitigation strategies if requested
             if include_mitigation:
-                assessment = threat_data.get('threat_assessment', {})
-                vulnerabilities = assessment.get('vulnerabilities', [])
+                vulnerabilities = threat_assessment_value.get('vulnerabilities', [])
 
                 mitigation_strategies = []
                 for vuln in vulnerabilities:
@@ -1054,17 +1057,19 @@ def penetration_test():
                 'returnByValue': True
             })
 
+            pen_test_value = pen_test_result.get('result', {}).get('value', {})
+
             pen_test_data = {
                 "test_type": test_type,
                 "safe_mode": safe_mode,
-                "penetration_test": pen_test_result.get('result', {}).get('value', {}),
+                "penetration_test": pen_test_value,
                 "ethical_testing_notice": "All tests performed are read-only and non-destructive"
             }
 
             track_endpoint_usage('penetration_test', [CDPDomain.SECURITY, CDPDomain.RUNTIME], {
                 'test_type': test_type,
                 'safe_mode': safe_mode,
-                'findings_count': len(pen_test_data.get('penetration_test', {}).get('findings', []))
+                'findings_count': len(pen_test_value.get('findings', []))
             })
 
             return jsonify(create_success_response(pen_test_data, 'penetration_test', [CDPDomain.SECURITY, CDPDomain.RUNTIME]))
@@ -1258,10 +1263,12 @@ def compliance_check():
                 'returnByValue': True
             })
 
+            compliance_check_value = compliance_result.get('result', {}).get('value', {})
+
             compliance_data = {
                 "standard": standard,
                 "detailed_report": detailed_report,
-                "compliance_check": compliance_result.get('result', {}).get('result', {}).get('value', {})
+                "compliance_check": compliance_check_value
             }
 
             # Add additional compliance guidance if detailed report requested
@@ -1509,10 +1516,12 @@ def ethical_hacking():
                 'returnByValue': True
             })
 
+            ethical_assessment_value = ethical_result.get('result', {}).get('value', {})
+
             ethical_data = {
                 "technique": technique,
                 "documentation_mode": documentation_mode,
-                "ethical_assessment": ethical_result.get('result', {}).get('result', {}).get('value', {}),
+                "ethical_assessment": ethical_assessment_value,
                 "ethical_guidelines": {
                     "purpose": "Defensive security assessment only",
                     "scope": "White-box security analysis",
@@ -1524,7 +1533,7 @@ def ethical_hacking():
             track_endpoint_usage('ethical_hacking', [CDPDomain.SECURITY, CDPDomain.RUNTIME], {
                 'technique': technique,
                 'documentation_mode': documentation_mode,
-                'issues_found': ethical_data.get('ethical_assessment', {}).get('risk_assessment', {}).get('total_issues', 0)
+                'issues_found': ethical_assessment_value.get('risk_assessment', {}).get('total_issues', 0)
             })
 
             return jsonify(create_success_response(ethical_data, 'ethical_hacking', [CDPDomain.SECURITY, CDPDomain.RUNTIME]))
@@ -1807,15 +1816,17 @@ def protection_validation():
                 'returnByValue': True
             })
 
+            protection_validation_value = validation_result.get('result', {}).get('value', {})
+
             validation_data = {
                 "protection_type": protection_type,
                 "generate_report": generate_report,
-                "protection_validation": validation_result.get('result', {}).get('result', {}).get('value', {})
+                "protection_validation": protection_validation_value
             }
 
             # Generate comprehensive report if requested
             if generate_report:
-                validation_results = validation_data.get('protection_validation', {})
+                validation_results = protection_validation_value
                 validation_data['validation_report'] = {
                     'executive_summary': f"Security protection validation completed with {validation_results.get('effectiveness_score', 0)}% effectiveness score",
                     'key_findings': validation_results.get('protection_gaps', [])[:3],  # Top 3 gaps

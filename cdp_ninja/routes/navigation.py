@@ -40,6 +40,8 @@ def navigate():
     // No wait for load
     {"url": "https://example.com", "wait_for_load": false}
     """
+    data = {}
+    url = 'about:blank'
     try:
         data = request.get_json() or {}
         url = validate_url(data.get('url', ''))
@@ -75,7 +77,7 @@ def navigate():
                         'returnByValue': True
                     })
 
-                    if (load_result.get('result', {}).get('result', {}).get('value') == 'complete'):
+                    if (load_result.get('result', {}).get('value') == 'complete'):
                         navigation_result['load_state'] = 'complete'
                         break
 
@@ -125,6 +127,7 @@ def reload_page():
 
     // To run scripts after reload, use /cdp/execute separately
     """
+    data = {}
     try:
         data = request.get_json() or {}
         ignore_cache = validate_boolean_param(data.get('ignore_cache', False))
@@ -359,7 +362,7 @@ def get_page_info():
                         'expression': query,
                         'returnByValue': True
                     })
-                    page_info[key] = result.get('result', {}).get('result', {}).get('value')
+                    page_info[key] = result.get('result', {}).get('value')
                 except Exception as e:
                     logger.debug(f"Failed to get page info for {key}: {e}")
                     page_info[key] = None
@@ -388,13 +391,13 @@ def get_page_info():
 @navigation_routes.route('/cdp/page/viewport', methods=['POST'])
 def set_viewport():
     """
-    Set viewport/device metrics - ANY values allowed
+    Set viewport/device metrics with validation
 
     @route POST /cdp/page/viewport
-    @param {number} [width] - Viewport width (can be 0, negative, huge)
-    @param {number} [height] - Viewport height (can be 0, negative, huge)
-    @param {number} [device_scale] - Device scale factor (can be 0, negative)
-    @param {boolean} [mobile] - Mobile mode
+    @param {number} [width] - Viewport width (1-99999 pixels, default: 1024)
+    @param {number} [height] - Viewport height (1-99999 pixels, default: 768)
+    @param {number} [device_scale] - Device scale factor (0.1-10, default: 1)
+    @param {boolean} [mobile] - Mobile mode (default: false)
     @returns {object} Viewport change result
 
     @example
@@ -404,12 +407,17 @@ def set_viewport():
     // Mobile device
     {"width": 375, "height": 667, "device_scale": 2, "mobile": true}
 
-    // Extreme values - test limits
-    {"width": 999999, "height": -100, "device_scale": 0}
+    // Minimum valid values
+    {"width": 1, "height": 1, "device_scale": 0.1}
 
-    // Tiny viewport
-    {"width": 1, "height": 1}
+    // Large viewport
+    {"width": 2560, "height": 1440}
     """
+    data = {}
+    width = 1024
+    height = 768
+    device_scale = 1
+    mobile = False
     try:
         data = request.get_json() or {}
         width = data.get('width', 1024)
@@ -417,15 +425,39 @@ def set_viewport():
         device_scale = data.get('device_scale', 1)
         mobile = data.get('mobile', False)
 
+        # Validate viewport parameters
+        try:
+            width = int(width)
+            if width < 1 or width > 99999:
+                return jsonify({"error": "width must be between 1 and 99999", "validation_failed": True}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "width must be an integer", "validation_failed": True}), 400
+
+        try:
+            height = int(height)
+            if height < 1 or height > 99999:
+                return jsonify({"error": "height must be between 1 and 99999", "validation_failed": True}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "height must be an integer", "validation_failed": True}), 400
+
+        try:
+            device_scale = float(device_scale)
+            if device_scale < 0.1 or device_scale > 10:
+                return jsonify({"error": "device_scale must be between 0.1 and 10", "validation_failed": True}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "device_scale must be a number", "validation_failed": True}), 400
+
+        mobile = validate_boolean_param(mobile)
+
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Send whatever values user provided - no validation
+            # Send validated viewport parameters
             result = cdp.send_command('Emulation.setDeviceMetricsOverride', {
-                'width': width,          # Could be negative, zero, huge
-                'height': height,        # Could be negative, zero, huge
-                'deviceScaleFactor': device_scale,  # Could be zero, negative
+                'width': width,
+                'height': height,
+                'deviceScaleFactor': device_scale,
                 'mobile': mobile
             })
 
@@ -519,6 +551,13 @@ def set_cookie():
     // Huge cookie - test limits
     {"name": "huge", "value": "x".repeat(100000)}
     """
+    data = {}
+    name = ''
+    value = ''
+    domain = None
+    path = '/'
+    secure = False
+    http_only = False
     try:
         data = request.get_json() or {}
         name = data.get('name', '')     # Could be empty, malformed
