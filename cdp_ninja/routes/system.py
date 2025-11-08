@@ -46,6 +46,9 @@ def execute_command():
     // Malformed commands - see what happens
     {"command": "'; rm -rf / #", "shell": "bash"}
     """
+    command = ''
+    shell = 'powershell' if platform.system() == 'Windows' else 'bash'
+    timeout = 30
     try:
         if not config.enable_shell_execution:
             return jsonify({
@@ -56,50 +59,54 @@ def execute_command():
             }), 403
 
         data = request.get_json() or {}
-        command = data.get('command', '')  # Could be anything dangerous
+        command = data.get('command', '')
         shell = data.get('shell', 'powershell' if platform.system() == 'Windows' else 'bash')
+
+        # Validate shell parameter against platform
+        current_platform = platform.system()
+        valid_shells = {
+            'Windows': ['powershell', 'cmd'],
+            'Darwin': ['bash', 'sh'],
+            'Linux': ['bash', 'sh']
+        }
+
+        platform_shells = valid_shells.get(current_platform, ['bash', 'sh'])
+        if shell.lower() not in platform_shells:
+            return jsonify({
+                "error": f"Shell '{shell}' not available on {current_platform}",
+                "available_shells": platform_shells,
+                "validation_failed": True
+            }), 400
 
         # Type validation for timeout
         try:
             timeout = int(data.get('timeout', 30))
-            if timeout < 1 or timeout > 3600:  # 1 second to 1 hour
-                return jsonify({"error": "timeout must be between 1 and 3600 seconds"}), 400
+            # Minimum 0 seconds (no timeout), practical minimum 1 second for most operations
+            # Maximum 1 hour for safety
+            if timeout < 0 or timeout > 3600:
+                return jsonify({"error": "timeout must be between 0 and 3600 seconds"}), 400
         except (ValueError, TypeError):
             return jsonify({"error": "timeout must be a valid integer"}), 400
 
         capture_output = bool(data.get('capture_output', True))
 
-        # Build shell command - NO sanitization
+        # Build shell command with validated shell
         if shell.lower() == 'powershell':
-            if platform.system() != 'Windows':
-                return jsonify({
-                    "error": "PowerShell not available on this platform",
-                    "platform": platform.system(),
-                    "available_shells": ["bash", "sh"]
-                }), 400
-
-            # RAW PowerShell execution
             full_command = ['powershell.exe', '-Command', command]
 
         elif shell.lower() == 'cmd':
-            if platform.system() != 'Windows':
-                return jsonify({
-                    "error": "CMD not available on this platform",
-                    "platform": platform.system(),
-                    "available_shells": ["bash", "sh"]
-                }), 400
-
-            # RAW CMD execution
             full_command = ['cmd.exe', '/c', command]
 
         elif shell.lower() in ['bash', 'sh']:
-            # RAW bash/sh execution
             shell_path = '/bin/bash' if shell.lower() == 'bash' else '/bin/sh'
             full_command = [shell_path, '-c', command]
 
         else:
-            # Unknown shell - try it anyway
-            full_command = [shell, '-c', command]
+            # This should not happen given validation above
+            return jsonify({
+                "error": f"Invalid shell: {shell}",
+                "validation_failed": True
+            }), 400
 
         # Execute with NO validation
         if capture_output:
@@ -111,9 +118,12 @@ def execute_command():
                 shell=False  # Use list form for some protection
             )
 
+            # Sanitize command in response - truncate and don't return full command to prevent secret leakage
+            command_preview = command[:100] + '...' if len(command) > 100 else command
+
             return jsonify({
                 "success": result.returncode == 0,
-                "command": command,
+                "command_preview": command_preview,
                 "shell": shell,
                 "return_code": result.returncode,
                 "stdout": result.stdout,
@@ -130,18 +140,23 @@ def execute_command():
                 stderr=subprocess.DEVNULL
             )
 
+            # Sanitize command in response - truncate and don't return full command to prevent secret leakage
+            command_preview = command[:100] + '...' if len(command) > 100 else command
+
             return jsonify({
                 "success": True,
-                "command": command,
+                "command_preview": command_preview,
                 "shell": shell,
                 "mode": "fire_and_forget",
                 "platform": platform.system()
             })
 
     except subprocess.TimeoutExpired:
+        # Sanitize command in response
+        command_preview = command[:100] + '...' if len(command) > 100 else command
         return jsonify({
             "timeout": True,
-            "command": command,
+            "command_preview": command_preview,
             "shell": shell,
             "timeout_seconds": timeout,
             "message": "Command execution timed out"
@@ -154,10 +169,14 @@ def execute_command():
             request_data=data
         )
 
+        # Sanitize command in response
+        raw_command = data.get('command', '')
+        command_preview = raw_command[:100] + '...' if len(raw_command) > 100 else raw_command
+
         return jsonify({
             "crash": True,
             "error": str(e),
-            "command": data.get('command'),
+            "command_preview": command_preview,
             "shell": data.get('shell'),
             "crash_id": crash_data.get('crash_id') or crash_data.get('timestamp'),
             "security_note": "Command execution is intentionally dangerous"

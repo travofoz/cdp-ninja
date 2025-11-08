@@ -31,6 +31,7 @@ def accessibility_audit():
     @param {boolean} [detailed=true] - Include detailed violation descriptions
     @returns {object} Complete accessibility audit with WCAG violations, compliance score, and remediation guidance
     """
+    wcag_level = 'AA'
     try:
         pool = get_global_pool()
         if not pool:
@@ -110,6 +111,8 @@ def keyboard_navigation():
     @param {boolean} [focus_visible=true] - Check focus indicators
     @returns {object} Keyboard navigation analysis with tab order, focus traps, and accessibility issues
     """
+    tab_order = True
+    focus_visible = True
     try:
         pool = get_global_pool()
         if not pool:
@@ -137,7 +140,7 @@ def keyboard_navigation():
             keyboard_data = {
                 "tab_order_test": tab_order,
                 "focus_visible_test": focus_visible,
-                "keyboard_analysis": result.get('result', {}).get('result', {}).get('value', {})
+                "keyboard_analysis": result.get('result', {}).get('value', {})
             }
 
             track_endpoint_usage('keyboard_navigation', [CDPDomain.ACCESSIBILITY, CDPDomain.DOM], {
@@ -167,6 +170,7 @@ def contrast_analysis():
     @param {string} [minimum=AA] - Minimum WCAG level (AA or AAA)
     @returns {object} Color contrast analysis with WCAG compliance and failing elements
     """
+    minimum = 'AA'
     try:
         pool = get_global_pool()
         if not pool:
@@ -197,7 +201,7 @@ def contrast_analysis():
             contrast_data = {
                 "minimum_wcag_level": minimum,
                 "ratio_calculation": ratio_check,
-                "contrast_analysis": result.get('result', {}).get('result', {}).get('value', {})
+                "contrast_analysis": result.get('result', {}).get('value', {})
             }
 
             track_endpoint_usage('contrast_analysis', [CDPDomain.ACCESSIBILITY, CDPDomain.DOM], {
@@ -257,7 +261,7 @@ def screen_reader_simulation():
             screen_reader_data = {
                 "simulation_enabled": simulate,
                 "verbose_analysis": verbose,
-                "screen_reader_analysis": result.get('result', {}).get('result', {}).get('value', {}),
+                "screen_reader_analysis": result.get('result', {}).get('value', {}),
                 "accessibility_tree_size": len(accessibility_tree.get('result', {}).get('nodes', [])) if verbose else None
             }
 
@@ -292,6 +296,7 @@ def form_accessibility_analysis():
     @body {boolean} [labels=true] - Analyze label associations
     @returns {object} Form accessibility analysis with label issues, validation patterns, and error handling
     """
+    selector = 'form'
     try:
         pool = get_global_pool()
         if not pool:

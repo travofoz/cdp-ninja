@@ -154,7 +154,8 @@ def get_console_logs():
         level_filter = request.args.get('level', '').lower()
         valid_levels = {'log', 'debug', 'info', 'warning', 'error', 'all', ''}
         if level_filter and level_filter not in valid_levels:
-            # If invalid level provided, return error instead of silently returning empty
+            # Log validation failure for debugging
+            logger.warning(f"Invalid console log level filter requested: {level_filter}")
             return jsonify({
                 "error": f"Invalid log level: {level_filter}",
                 "valid_levels": list(valid_levels - {''})
@@ -370,6 +371,7 @@ def get_network_requests():
     // Filter by URL pattern
     GET /cdp/network/requests?url_filter=api
     """
+    url_filter = None
     try:
         limit = validate_integer_param(request.args.get('limit', 200), "limit", default=200, min_val=1, max_val=10000)
         url_filter = request.args.get('url_filter')  # String filter, no injection risk
@@ -483,14 +485,23 @@ def block_urls():
     """
     try:
         data = request.get_json() or {}
-        patterns = data.get('patterns', [])  # No validation of patterns
+        patterns = data.get('patterns', [])
+
+        # Validate patterns is a list
+        if not isinstance(patterns, list):
+            return jsonify({"error": "patterns must be a list", "validation_failed": True}), 400
+
+        # Validate each pattern is a string
+        for pattern in patterns:
+            if not isinstance(pattern, str):
+                return jsonify({"error": f"pattern must be a string, got {type(pattern).__name__}", "validation_failed": True}), 400
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
             result = cdp.send_command('Network.setBlockedURLs', {
-                'urls': patterns  # Send exactly what user provided
+                'urls': patterns
             })
 
             return jsonify({
@@ -723,10 +734,10 @@ def get_performance_metrics():
             })
 
             return jsonify({
-                "timing": timing_result.get('result', {}).get('result', {}).get('value', {}),
-                "memory": memory_result.get('result', {}).get('result', {}).get('value', {}),
-                "navigation": navigation_result.get('result', {}).get('result', {}).get('value', []),
-                "resources": resource_result.get('result', {}).get('result', {}).get('value', [])
+                "timing": timing_result.get('result', {}).get('value', {}),
+                "memory": memory_result.get('result', {}).get('value', {}),
+                "navigation": navigation_result.get('result', {}).get('value', []),
+                "resources": resource_result.get('result', {}).get('value', [])
             })
 
         finally:

@@ -265,24 +265,8 @@ def validate_array_param(values: Any, name: str = "array",
     return list(values)
 
 
-def escape_javascript_string(value: str) -> str:
-    """
-    Safely escape a string for use in JavaScript code.
-
-    NOTE: This should only be used in conjunction with JSON.dumps()
-    for maximum safety. Prefer JSON encoding over string escaping.
-
-    @param value - String to escape
-    @returns Escaped string safe for JavaScript
-    """
-    return (value
-            .replace('\\', '\\\\')
-            .replace('"', '\\"')
-            .replace("'", "\\'")
-            .replace('\n', '\\n')
-            .replace('\r', '\\r')
-            .replace('\t', '\\t')
-            .replace('\0', '\\0'))
+# DEPRECATED: escape_javascript_string() is no longer used
+# Use javascript_safe_value() instead for safe JSON encoding
 
 
 def javascript_safe_value(value: Any) -> str:
@@ -348,6 +332,14 @@ def validate_attributes(attributes: Dict[str, str]) -> Dict[str, str]:
     if not isinstance(attributes, dict):
         raise ValidationError(f"attributes must be a dictionary, got {type(attributes).__name__}")
 
+    # Dangerous attributes that should be blocked
+    dangerous_attributes = {
+        'onload', 'onerror', 'onmouseover', 'onmouseout', 'onclick', 'onchange',
+        'onsubmit', 'onfocus', 'onblur', 'ondblclick', 'onkeydown', 'onkeyup',
+        'onkeypress', 'onmousedown', 'onmouseup', 'onwheel', 'onscroll',
+        'ontouchstart', 'ontouchend', 'ontouchmove', 'ondragstart', 'ondrop'
+    }
+
     validated = {}
     for name, value in attributes.items():
         if not isinstance(name, str):
@@ -355,12 +347,17 @@ def validate_attributes(attributes: Dict[str, str]) -> Dict[str, str]:
         if not isinstance(value, str):
             raise ValidationError(f"Attribute value must be string, got {type(value).__name__}")
 
-        # Reject dangerous attributes
-        if name.lower().startswith('on'):
+        # Reject dangerous event handler attributes
+        if name.lower() in dangerous_attributes or name.lower().startswith('on'):
             raise ValidationError(f"Event attribute '{name}' not allowed")
 
-        # Validate value doesn't contain dangerous content
-        if any(pattern in value.lower() for pattern in ['javascript:', 'data:']):
+        # Reject dangerous protocol-based attributes
+        if name.lower() in ['href', 'src', 'data', 'formaction', 'poster', 'srcset']:
+            if any(pattern in value.lower() for pattern in ['javascript:', 'data:text', 'vbscript:']):
+                raise ValidationError(f"Attribute value '{name}' contains forbidden protocol")
+
+        # Validate other attribute values don't contain dangerous content
+        if any(pattern in value.lower() for pattern in ['javascript:', 'vbscript:', 'expression(']):
             raise ValidationError(f"Attribute value contains forbidden content")
 
         validated[name] = value

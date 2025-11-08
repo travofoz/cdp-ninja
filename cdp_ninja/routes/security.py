@@ -29,6 +29,8 @@ def security_vulnerabilities():
     @param {boolean} [include_recommendations=true] - Include fix recommendations
     @returns {object} Vulnerability assessment report with findings and severity levels
     """
+    target_url = 'current'
+    include_recommendations = True
     try:
         pool = get_global_pool()
         if not pool:

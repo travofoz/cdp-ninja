@@ -40,6 +40,10 @@ def analyze_exceptions():
     // Filter specific errors
     GET /cdp/errors/exceptions?filter=TypeError&time_window=5
     """
+    error_filter = ''
+    include_stack = False
+    detailed_analysis = False
+    time_window = 30
     try:
         params = parse_request_params(request, ['filter', 'include_stack', 'detailed_analysis', 'time_window'])
         error_filter = params['filter'] or ''
