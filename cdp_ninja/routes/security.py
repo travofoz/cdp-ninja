@@ -46,19 +46,41 @@ def security_vulnerabilities():
 
             # Enable Security domain for vulnerability scanning
             security_enable = client.send_command('Security.enable')
-            if not security_enable.get('success'):
+            if 'error' in security_enable:
                 return jsonify({"error": "Failed to enable Security domain"}), 500
 
             # Get current page URL if not specified
             if target_url == 'current':
                 runtime_evaluate = client.send_command('Runtime.evaluate', {
-                    'expression': 'window.location.href'
+                    'expression': 'window.location.href',
+                    'returnByValue': True
                 })
-                if runtime_evaluate.get('success') and 'result' in runtime_evaluate:
-                    target_url = runtime_evaluate['result'].get('value', 'unknown')
+                if 'error' not in runtime_evaluate:
+                    target_url = runtime_evaluate.get('result', {}).get('value', 'unknown')
 
-            # Security state analysis
-            security_state = client.send_command('Security.getSecurityState')
+            # Security state analysis - get via JavaScript since Security.getSecurityState doesn't exist in CDP
+            security_state_js = """
+            (() => {
+                const state = {
+                    protocol: window.location.protocol,
+                    secure: window.location.protocol === 'https:',
+                    hostname: window.location.hostname
+                };
+
+                // Check if connection is secure
+                if (navigator.deviceMemory) {
+                    state.device_memory = navigator.deviceMemory;
+                }
+
+                return state;
+            })()
+            """
+
+            security_state_result = client.send_command('Runtime.evaluate', {
+                'expression': security_state_js,
+                'returnByValue': True
+            })
+            security_state = security_state_result.get('result', {}).get('value', {})
 
             # Mixed content analysis
             mixed_content_js = """
@@ -165,8 +187,8 @@ def security_vulnerabilities():
             vulnerability_data = {
                 "target_url": target_url,
                 "security_state": security_state.get('result', {}),
-                "mixed_content_analysis": mixed_content_result.get('result', {}).get('value', {}),
-                "scan_timestamp": mixed_content_result.get('result', {}).get('value', {}).get('scan_timestamp'),
+                "mixed_content_analysis": mixed_content_result.get('result', {}).get('result', {}).get('value', {}),
+                "scan_timestamp": mixed_content_result.get('result', {}).get('result', {}).get('value', {}).get('scan_timestamp'),
             }
 
             # Add recommendations if requested
@@ -224,6 +246,12 @@ def authentication_analysis():
         try:
             params = parse_request_params(request, ['auth_type', 'check_headers'])
             auth_type = params.get('auth_type', 'all')
+
+            # Validate auth_type parameter
+            allowed_auth_types = ['all', 'cookie', 'token', 'session']
+            if auth_type not in allowed_auth_types:
+                return jsonify({"error": f"Invalid auth_type. Must be one of: {', '.join(allowed_auth_types)}"}), 400
+
             check_headers = params.get('check_headers', 'true').lower() == 'true'
 
             # Enable required domains
@@ -598,6 +626,12 @@ def threat_assessment():
         try:
             params = parse_request_params(request, ['focus_area', 'include_mitigation'])
             focus_area = params.get('focus_area', 'all')
+
+            # Validate focus_area parameter
+            allowed_focus_areas = ['all', 'xss', 'injection', 'clickjacking']
+            if focus_area not in allowed_focus_areas:
+                return jsonify({"error": f"Invalid focus_area. Must be one of: {', '.join(allowed_focus_areas)}"}), 400
+
             include_mitigation = params.get('include_mitigation', 'true').lower() == 'true'
 
             client.send_command('Security.enable')
@@ -816,6 +850,12 @@ def penetration_test():
         try:
             params = parse_request_params(request, ['test_type', 'safe_mode'])
             test_type = params.get('test_type', 'input_validation')
+
+            # Validate test_type parameter
+            allowed_test_types = ['input_validation', 'auth_bypass', 'session', 'all']
+            if test_type not in allowed_test_types:
+                return jsonify({"error": f"Invalid test_type. Must be one of: {', '.join(allowed_test_types)}"}), 400
+
             safe_mode = params.get('safe_mode', 'true').lower() == 'true'
 
             client.send_command('Security.enable')
@@ -1060,6 +1100,12 @@ def compliance_check():
         try:
             params = parse_request_params(request, ['standard', 'detailed_report'])
             standard = params.get('standard', 'owasp')
+
+            # Validate standard parameter
+            allowed_standards = ['owasp', 'gdpr', 'pci-dss', 'all']
+            if standard not in allowed_standards:
+                return jsonify({"error": f"Invalid standard. Must be one of: {', '.join(allowed_standards)}"}), 400
+
             detailed_report = params.get('detailed_report', 'true').lower() == 'true'
 
             client.send_command('Security.enable')
@@ -1215,7 +1261,7 @@ def compliance_check():
             compliance_data = {
                 "standard": standard,
                 "detailed_report": detailed_report,
-                "compliance_check": compliance_result.get('result', {}).get('value', {})
+                "compliance_check": compliance_result.get('result', {}).get('result', {}).get('value', {})
             }
 
             # Add additional compliance guidance if detailed report requested
@@ -1466,7 +1512,7 @@ def ethical_hacking():
             ethical_data = {
                 "technique": technique,
                 "documentation_mode": documentation_mode,
-                "ethical_assessment": ethical_result.get('result', {}).get('value', {}),
+                "ethical_assessment": ethical_result.get('result', {}).get('result', {}).get('value', {}),
                 "ethical_guidelines": {
                     "purpose": "Defensive security assessment only",
                     "scope": "White-box security analysis",
@@ -1764,7 +1810,7 @@ def protection_validation():
             validation_data = {
                 "protection_type": protection_type,
                 "generate_report": generate_report,
-                "protection_validation": validation_result.get('result', {}).get('value', {})
+                "protection_validation": validation_result.get('result', {}).get('result', {}).get('value', {})
             }
 
             # Generate comprehensive report if requested

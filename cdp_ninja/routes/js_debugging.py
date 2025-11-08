@@ -4,9 +4,13 @@ JavaScript mastery through Runtime domain analysis and async operation monitorin
 """
 
 import logging
+import json
 from flask import Blueprint, jsonify, request
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_text_input, validate_boolean_param, javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 js_debugging_routes = Blueprint('js_debugging', __name__)
@@ -55,16 +59,16 @@ def advanced_javascript_debugging():
     """
     try:
         data = request.get_json() or {}
-        expression = data.get('expression', '')
-        stack_trace = data.get('stack_trace', False)
-        scope_analysis = data.get('scope_analysis', False)
-        error_context = data.get('error_context', False)
-        breakpoints = data.get('breakpoints', {})
+        expression = validate_text_input(data.get('expression', ''), 'expression')
+        stack_trace = validate_boolean_param(data.get('stack_trace', False))
+        scope_analysis = validate_boolean_param(data.get('scope_analysis', False))
+        error_context = validate_boolean_param(data.get('error_context', False))
 
         if not expression:
             return jsonify({
                 "success": False,
-                "error": "No JavaScript expression provided"
+                "error": "No JavaScript expression provided",
+                "validation_failed": True
             }), 400
 
         pool = get_global_pool()
@@ -80,7 +84,8 @@ def advanced_javascript_debugging():
                 "debugging_suggestions": []
             }
 
-            # Execute the expression with error capture
+            # Execute the expression with error capture (safely wrapped)
+            # Use Function constructor instead of eval() for slightly better isolation
             execution_code = f"""
                 (() => {{
                     const debugContext = {{
@@ -94,7 +99,9 @@ def advanced_javascript_debugging():
                     const startTime = performance.now();
 
                     try {{
-                        debugContext.result = eval(`{expression}`);
+                        // Use Function constructor with expression as argument
+                        const fn = new Function("return (" + {javascript_safe_value(expression)} + ")");
+                        debugContext.result = fn();
                         debugContext.type = typeof debugContext.result;
                         debugContext.execution_time = performance.now() - startTime;
                     }} catch (error) {{
@@ -123,9 +130,10 @@ def advanced_javascript_debugging():
 
             # Advanced error analysis if requested
             if error_context and debug_analysis["execution_result"] and debug_analysis["execution_result"].get("error"):
+                error_obj = debug_analysis["execution_result"]["error"]
                 error_analysis_code = f"""
                     (() => {{
-                        const error = {str(debug_analysis["execution_result"]["error"]).replace("'", '"')};
+                        const error = {json.dumps(error_obj)};
                         const analysis = {{
                             error_type: error.name,
                             error_category: "unknown",
@@ -180,9 +188,10 @@ def advanced_javascript_debugging():
 
             # Stack trace analysis if requested
             if stack_trace and debug_analysis["execution_result"] and debug_analysis["execution_result"].get("error"):
+                stack_text = debug_analysis["execution_result"]["error"].get("stack", "")
                 stack_analysis_code = f"""
                     (() => {{
-                        const stack = `{debug_analysis["execution_result"]["error"].get("stack", "")}`;
+                        const stack = {javascript_safe_value(stack_text)};
                         const lines = stack.split('\\n').filter(line => line.trim());
 
                         const stackAnalysis = {{
@@ -313,6 +322,9 @@ def advanced_javascript_debugging():
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
         crash_data = crash_reporter.report_crash(
             operation="advanced_javascript_debugging",
@@ -323,7 +335,7 @@ def advanced_javascript_debugging():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "expression": expression,
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
@@ -365,10 +377,13 @@ def analyze_async_operations():
     try:
         data = request.get_json() or {}
         expression = data.get('expression', '')
-        promise_tracking = data.get('promise_tracking', True)
-        callback_analysis = data.get('callback_analysis', False)
-        timeout = data.get('timeout', 3000)
-        performance_timing = data.get('performance_timing', False)
+        if expression:
+            expression = validate_text_input(expression, 'expression')
+        promise_tracking = validate_boolean_param(data.get('promise_tracking', True))
+        callback_analysis = validate_boolean_param(data.get('callback_analysis', False))
+        from cdp_ninja.routes.input_validation import validate_timeout
+        timeout = validate_timeout(data.get('timeout', 3000))
+        performance_timing = validate_boolean_param(data.get('performance_timing', False))
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -384,6 +399,7 @@ def analyze_async_operations():
 
             # Promise tracking analysis
             if promise_tracking:
+                expression_safe = javascript_safe_value(expression)
                 promise_code = f"""
                     (() => {{
                         const promiseAnalysis = {{
@@ -426,9 +442,11 @@ def analyze_async_operations():
                         promiseAnalysis.unhandled_rejections = unhandledRejections;
 
                         // If expression provided, analyze it
-                        if ('{expression}') {{
+                        if ({expression_safe}) {{
                             try {{
-                                const result = eval(`{expression}`);
+                                // Use Function() instead of eval() for safer code execution
+                                const fn = new Function("return (" + {expression_safe} + ")");
+                                const result = fn();
                                 promiseAnalysis.expression_result = {{
                                     type: typeof result,
                                     is_promise: result instanceof Promise,

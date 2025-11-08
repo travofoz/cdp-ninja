@@ -12,6 +12,7 @@ from cdp_ninja.routes.route_utils import (
     ensure_domain_available, create_domain_error_response, create_success_response,
     handle_cdp_error, parse_request_params, track_endpoint_usage, SAFE_DOMAINS
 )
+from cdp_ninja.routes.input_validation import javascript_safe_value, ValidationError
 
 logger = logging.getLogger(__name__)
 error_handling_routes = Blueprint('error_handling', __name__)
@@ -107,9 +108,9 @@ def analyze_exceptions():
 
                     if (window._cdp_exceptions) {{
                         const filteredExceptions = window._cdp_exceptions.filter(exc => {{
-                            const matchesFilter = !'{error_filter}' ||
-                                exc.message.includes('{error_filter}') ||
-                                (exc.error && exc.error.name.includes('{error_filter}'));
+                            const matchesFilter = !{javascript_safe_value(error_filter)} ||
+                                exc.message.includes({javascript_safe_value(error_filter)}) ||
+                                (exc.error && exc.error.name.includes({javascript_safe_value(error_filter)}));
                             const inTimeWindow = exc.timestamp >= cutoffTime;
                             return matchesFilter && inTimeWindow;
                         }});

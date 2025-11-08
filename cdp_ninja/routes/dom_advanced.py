@@ -7,6 +7,10 @@ import logging
 from flask import Blueprint, jsonify, request
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_selector, validate_integer_param, validate_boolean_param,
+    validate_array_param, javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 dom_advanced_routes = Blueprint('dom_advanced', __name__)
@@ -218,7 +222,7 @@ def get_computed_style():
 
                     code = f"""
                         (() => {{
-                            const el = document.querySelector('{selector}');
+                            const el = document.querySelector({javascript_safe_value(selector)});
                             if (!el) return null;
                             const style = window.getComputedStyle(el);
                             const result = {{}};
@@ -236,7 +240,7 @@ def get_computed_style():
                     })
 
                     if 'result' in js_result and 'result' in js_result['result']:
-                        computed_styles = js_result['result']['result'] or {}
+                        computed_styles = js_result['result']['result'].get('value') or {}
 
                     return jsonify({
                         "success": computed_styles is not None,
@@ -311,7 +315,7 @@ def check_element_visibility():
             # Use JavaScript for comprehensive visibility check (no node ID needed)
             visibility_code = f"""
                 (() => {{
-                    const el = document.querySelector('{selector}');
+                    const el = document.querySelector({javascript_safe_value(selector)});
                     if (!el) return null;
 
                     const rect = el.getBoundingClientRect();
@@ -342,7 +346,8 @@ def check_element_visibility():
                         ...checks,
                         basic_visible: basicVisible,
                         strict_visible: strictVisible,
-                        is_visible: {'strictVisible' if strict else 'basicVisible'},
+                        is_visible: {str(strict).lower()} ? strictVisible : basicVisible,
+                        visibility_mode: {javascript_safe_value('strict' if strict else 'basic')},
                         bounds: {{
                             x: rect.x,
                             y: rect.y,
@@ -438,7 +443,7 @@ def access_shadow_dom():
             if selector and not node_id:
                 shadow_code = f"""
                     (() => {{
-                        const el = document.querySelector('{selector}');
+                        const el = document.querySelector({javascript_safe_value(selector)});
                         if (!el) return {{error: "element_not_found"}};
 
                         if (!el.shadowRoot) return {{error: "no_shadow_root"}};
@@ -615,7 +620,7 @@ def get_parent_node():
             # JavaScript approach for comprehensive parent navigation
             parent_code = f"""
                 (() => {{
-                    const el = document.querySelector('{selector}');
+                    const el = document.querySelector({javascript_safe_value(selector)});
                     if (!el) return null;
 
                     const result = {{

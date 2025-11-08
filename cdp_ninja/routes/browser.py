@@ -1,14 +1,19 @@
 """
-Browser Interaction Routes - RAW pass-through to CDP
-No validation, no sanitization, no limits
-If it crashes Chrome, that's debugging data!
+Browser Interaction Routes - Browser control with input validation
+Provides click, type, scroll, hover, drag, and screenshot functionality
 """
 
 import base64
+import json
 import logging
 from flask import Blueprint, jsonify, request, Response, current_app
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_selector, validate_coordinate, validate_coordinates,
+    validate_text_input, validate_integer_param, validate_boolean_param,
+    validate_timeout, javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 browser_routes = Blueprint('browser', __name__)
@@ -17,31 +22,28 @@ browser_routes = Blueprint('browser', __name__)
 @browser_routes.route('/cdp/click', methods=['POST'])
 def click_element():
     """
-    Click on element by selector or coordinates - RAW mode
+    Click on element by selector or coordinates
 
     @route POST /cdp/click
-    @param {string} [selector] - ANY selector, malformed or not
-    @param {number} [x] - ANY x coordinate, can be negative/huge
-    @param {number} [y] - ANY y coordinate, can be negative/huge
-    @param {string} [button] - Mouse button (left/right/middle)
-    @param {number} [clickCount] - Number of clicks
-    @returns {object} Whatever Chrome returns (or crashes)
+    @param {string} [selector] - CSS selector for element to click
+    @param {number} [x] - X coordinate for click
+    @param {number} [y] - Y coordinate for click
+    @param {string} [button] - Mouse button: left, right, middle (default: left)
+    @param {number} [clickCount] - Number of clicks (default: 1)
+    @returns {object} Click result
 
     @example
-    // Normal click
+    // Click by selector
     {"selector": "#submit-button"}
 
-    // Injection attempt - we WANT to test this
-    {"selector": "';alert('xss')//"}
+    // Click by coordinates
+    {"x": 100, "y": 200}
 
-    // Malformed selector - see if Chrome handles it
-    {"selector": ">>>>invalid>>>>"}
+    // Right-click
+    {"selector": "#menu", "button": "right"}
 
-    // Extreme coordinates - test bounds
-    {"x": 999999999, "y": -999999999}
-
-    // Rapid multi-click
-    {"selector": "#button", "clickCount": 10}
+    // Double-click
+    {"selector": "#button", "clickCount": 2}
     """
     try:
         data = request.get_json() or {}
@@ -55,20 +57,20 @@ def click_element():
 
         try:
             if 'selector' in data:
-                # RAW selector, no escaping, no validation
-                selector = data['selector']  # Could be anything!
+                # Validate selector
+                selector = validate_selector(data['selector'])
                 button = data.get('button', 'left')
-                click_count = data.get('clickCount', 1)
+                click_count = validate_integer_param(data.get('clickCount', 1), 'clickCount', min_val=1, max_val=100)
 
-                # Send EXACTLY what user provided - no safety checks
+                # Use JSON encoding for safe string interpolation
                 code = f"""
                     (() => {{
-                        const el = document.querySelector('{selector}');
+                        const el = document.querySelector({javascript_safe_value(selector)});
                         if (el) {{
                             el.click();
-                            return {{success: true, selector: '{selector}'}};
+                            return {{success: true, selector: {javascript_safe_value(selector)}}};
                         }}
-                        return {{success: false, error: 'Element not found', selector: '{selector}'}};
+                        return {{success: false, error: 'Element not found', selector: {javascript_safe_value(selector)}}};
                     }})()
                 """
 
@@ -77,12 +79,15 @@ def click_element():
                     'returnByValue': True
                 })
 
+                # Extract the actual result from triple-nested CDP response
+                if 'result' in result:
+                    result = result.get('result', {}).get('result', {}).get('value', result)
+
             elif 'x' in data and 'y' in data:
-                # RAW coordinates, could be negative, huge, non-numeric
-                x = data['x']  # Whatever they sent, no validation
-                y = data['y']  # Could be string, negative, huge
+                # Validate coordinates
+                x, y = validate_coordinates(data['x'], data['y'])
                 button = data.get('button', 'left')
-                click_count = data.get('clickCount', 1)
+                click_count = validate_integer_param(data.get('clickCount', 1), 'clickCount', min_val=1, max_val=100)
 
                 # Mouse press
                 result = cdp.send_command('Input.dispatchMouseEvent', {
@@ -106,15 +111,17 @@ def click_element():
                         result = {"success": True, "clicked": [x, y], "button": button}
 
             else:
-                result = {"error": "Need selector or x,y coordinates"}
+                return jsonify({"error": "Must provide either selector or x,y coordinates"}), 400
 
             return jsonify(result)
 
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
-        # Log the crash but return the error - this is debugging data!
         crash_data = crash_reporter.report_crash(
             operation="click",
             error=e,
@@ -133,51 +140,49 @@ def click_element():
 @browser_routes.route('/cdp/type', methods=['POST'])
 def type_text():
     """
-    Type text into element or focused input - RAW mode
+    Type text into element or focused input
 
     @route POST /cdp/type
-    @param {string} text - ANY text, including control characters
+    @param {string} text - Text to type (max 100,000 characters)
     @param {string} [selector] - Element to focus first (optional)
-    @param {number} [delay] - Delay between characters in ms
-    @returns {object} Success status or crash data
+    @param {number} [delay] - Delay between characters in ms (0-1000)
+    @returns {object} Success status
 
     @example
-    // Normal typing
+    // Type into field
     {"text": "hello world", "selector": "#input"}
 
-    // Special characters - test edge cases
-    {"text": "\\n\\t\\r\\0"}
-
-    // Huge text - test limits
-    {"text": "A".repeat(100000)}
-
-    // Control characters
-    {"text": "\\u0000\\u0001\\u0002"}
+    // Type with delay for slow text entry
+    {"text": "password123", "delay": 50}
     """
     try:
         data = request.get_json() or {}
-        text = data.get('text', '')  # Could be empty, huge, contain anything
+        text = validate_text_input(data.get('text', ''), 'text')
         selector = data.get('selector')
-        delay = data.get('delay', 0)  # User-controlled delay
+        delay = validate_integer_param(data.get('delay', 0), 'delay', min_val=0, max_val=1000)
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Focus element if selector provided (no validation)
+            # Focus element if selector provided
             if selector:
-                focus_code = f"document.querySelector('{selector}').focus()"
+                validate_selector(selector)
+                focus_code = f"document.querySelector({javascript_safe_value(selector)}).focus()"
                 cdp.send_command('Runtime.evaluate', {'expression': focus_code})
 
             # Type each character with optional delay
+            typed_count = 0
             for char in text:
                 result = cdp.send_command('Input.dispatchKeyEvent', {
                     'type': 'char',
-                    'text': char  # RAW character, no filtering
+                    'text': char
                 })
 
                 if 'error' in result:
                     break
+
+                typed_count += 1
 
                 if delay > 0:
                     import time
@@ -185,13 +190,16 @@ def type_text():
 
             return jsonify({
                 "success": True,
-                "typed": text,
-                "length": len(text),
+                "typed_length": typed_count,
+                "total_length": len(text),
                 "selector": selector
             })
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -203,7 +211,7 @@ def type_text():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "typed_so_far": data.get('text', '')[:100],  # First 100 chars
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
@@ -211,36 +219,36 @@ def type_text():
 @browser_routes.route('/cdp/scroll', methods=['POST'])
 def scroll_page():
     """
-    Scroll the page - ANY direction, ANY amount
+    Scroll the page
 
     @route POST /cdp/scroll
-    @param {string} [direction] - Direction (up/down/left/right)
-    @param {number} [amount] - Scroll amount in pixels
-    @param {number} [x] - X coordinate for scroll origin
-    @param {number} [y] - Y coordinate for scroll origin
-    @returns {object} Scroll result or crash data
+    @param {string} [direction] - Direction: up, down, left, right (default: down)
+    @param {number} [amount] - Scroll amount in pixels (default: 100, max: 10000)
+    @param {number} [x] - X coordinate for scroll origin (default: 100)
+    @param {number} [y] - Y coordinate for scroll origin (default: 100)
+    @returns {object} Scroll result
 
     @example
-    // Normal scroll
+    // Scroll down
     {"direction": "down", "amount": 100}
 
-    // Extreme scroll - test limits
-    {"direction": "down", "amount": 999999999}
+    // Scroll up
+    {"direction": "up", "amount": 50}
 
-    // Negative scroll
-    {"direction": "up", "amount": -1000}
-
-    // Invalid direction - see what happens
-    {"direction": "diagonal", "amount": 50}
+    // Scroll at specific coordinates
+    {"direction": "down", "amount": 200, "x": 500, "y": 400}
     """
     try:
         data = request.get_json() or {}
-        direction = data.get('direction', 'down')  # No validation
-        amount = data.get('amount', 100)  # Could be negative, huge
-        x = data.get('x', 100)  # Raw coordinates
-        y = data.get('y', 100)
+        direction = data.get('direction', 'down')
+        amount = validate_integer_param(data.get('amount', 100), 'amount', min_val=-10000, max_val=10000)
+        x, y = validate_coordinates(data.get('x', 100), data.get('y', 100))
 
-        # Convert direction to delta (no validation of direction string)
+        # Validate direction
+        if direction not in ['up', 'down', 'left', 'right']:
+            return jsonify({"error": f"Invalid direction '{direction}', must be: up, down, left, right"}), 400
+
+        # Convert direction to delta
         delta_x = 0
         delta_y = 0
 
@@ -252,9 +260,6 @@ def scroll_page():
             delta_x = -amount
         elif direction == 'right':
             delta_x = amount
-        else:
-            # Invalid direction? Send it anyway and see what happens
-            delta_y = amount
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -281,6 +286,9 @@ def scroll_page():
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
         crash_data = crash_reporter.report_crash(
             operation="scroll",
@@ -291,7 +299,7 @@ def scroll_page():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "scroll_params": data,
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
@@ -299,22 +307,19 @@ def scroll_page():
 @browser_routes.route('/cdp/hover', methods=['POST'])
 def hover_element():
     """
-    Hover over element - RAW selector, no validation
+    Hover over element
 
     @route POST /cdp/hover
-    @param {string} selector - ANY selector string
-    @param {number} [x] - Override X coordinate
-    @param {number} [y] - Override Y coordinate
-    @returns {object} Hover result or crash data
+    @param {string} [selector] - CSS selector for element to hover
+    @param {number} [x] - Direct X coordinate
+    @param {number} [y] - Direct Y coordinate
+    @returns {object} Hover result
 
     @example
-    // Normal hover
+    // Hover by selector
     {"selector": "#menu-item"}
 
-    // Malformed selector
-    {"selector": ">><<invalid>><<"}
-
-    // Direct coordinates
+    // Hover by coordinates
     {"x": 200, "y": 300}
     """
     try:
@@ -329,7 +334,7 @@ def hover_element():
         try:
             if override_x is not None and override_y is not None:
                 # Use provided coordinates directly
-                x, y = override_x, override_y
+                x, y = validate_coordinates(override_x, override_y)
 
                 result = cdp.send_command('Input.dispatchMouseEvent', {
                     'type': 'mouseMoved',
@@ -344,10 +349,11 @@ def hover_element():
                 })
 
             elif selector:
-                # Get element coordinates using RAW selector
+                # Get element coordinates using safe selector
+                validate_selector(selector)
                 code = f"""
                     (() => {{
-                        const el = document.querySelector('{selector}');
+                        const el = document.querySelector({javascript_safe_value(selector)});
                         if (!el) return {{error: "element_not_found"}};
 
                         const rect = el.getBoundingClientRect();
@@ -408,10 +414,13 @@ def hover_element():
                 })
 
             else:
-                return jsonify({"error": "Need selector or x,y coordinates"})
+                return jsonify({"error": "Must provide either selector or x,y coordinates"}), 400
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -423,6 +432,7 @@ def hover_element():
         return jsonify({
             "crash": True,
             "error": str(e),
+            "error_type": type(e).__name__,
             "selector": data.get('selector'),
             "crash_id": crash_data.get('timestamp')
         }), 500
@@ -431,49 +441,54 @@ def hover_element():
 @browser_routes.route('/cdp/screenshot', methods=['GET'])
 def capture_screenshot():
     """
-    Capture screenshot of current page - ANY format, ANY quality
+    Capture screenshot of current page
 
     @route GET /cdp/screenshot
-    @param {string} [format] - Image format (png/jpeg/webp) - no validation
-    @param {number} [quality] - Image quality (0-100) - no limits
-    @param {boolean} [full_page] - Capture beyond viewport
-    @param {number} [width] - Custom viewport width
-    @param {number} [height] - Custom viewport height
-    @returns {binary} Image data or error JSON
+    @param {string} [format] - Image format: png, jpeg, webp (default: png)
+    @param {number} [quality] - Image quality 0-100 for jpeg/webp (default: 80)
+    @param {boolean} [full_page] - Capture beyond viewport (default: false)
+    @param {number} [width] - Custom viewport width (default: current)
+    @param {number} [height] - Custom viewport height (default: current)
+    @returns {binary} Image data
 
     @example
     // Normal screenshot
     GET /cdp/screenshot
 
-    // Custom format/quality - no validation
-    GET /cdp/screenshot?format=webp&quality=999
+    // High quality JPEG
+    GET /cdp/screenshot?format=jpeg&quality=95
 
-    // Extreme dimensions
-    GET /cdp/screenshot?width=99999&height=99999&full_page=true
+    // Full page capture
+    GET /cdp/screenshot?full_page=true
+
+    // Custom viewport
+    GET /cdp/screenshot?width=1920&height=1080
     """
     try:
-        # Get parameters with NO validation
-        format_type = request.args.get('format', 'png')  # Could be anything
-        quality = request.args.get('quality', 80)  # Could be > 100, negative
-        full_page = request.args.get('full_page', 'false').lower() == 'true'
-        width = request.args.get('width')
-        height = request.args.get('height')
+        # Get and validate parameters
+        format_type = request.args.get('format', 'png')
+        if format_type not in ['png', 'jpeg', 'webp']:
+            return jsonify({"error": "Invalid format, must be: png, jpeg, or webp"}), 400
 
-        # Convert quality to int if possible, otherwise send as-is
-        try:
-            quality = int(quality)
-        except (ValueError, TypeError) as e:
-            logger.debug(f"Quality parameter '{quality}' not convertible to int: {e} - sending raw value")
-            pass  # Send whatever they provided
+        quality = validate_integer_param(request.args.get('quality', 80), 'quality', min_val=0, max_val=100)
+        full_page = validate_boolean_param(request.args.get('full_page', False), 'full_page')
+
+        # Validate viewport dimensions if provided
+        width = None
+        height = None
+        if request.args.get('width'):
+            width = validate_integer_param(request.args.get('width'), 'width', min_val=1, max_val=32767)
+        if request.args.get('height'):
+            height = validate_integer_param(request.args.get('height'), 'height', min_val=1, max_val=32767)
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Build screenshot parameters - no validation
+            # Build screenshot parameters
             params = {
-                'format': format_type,  # png, jpeg, webp, or whatever
-                'quality': quality      # Could be > 100, negative, string
+                'format': format_type,
+                'quality': quality
             }
 
             if full_page:
@@ -484,11 +499,11 @@ def capture_screenshot():
                 try:
                     viewport_params = {}
                     if width:
-                        viewport_params['width'] = int(width)
+                        viewport_params['width'] = width
                     if height:
-                        viewport_params['height'] = int(height)
+                        viewport_params['height'] = height
 
-                    # Set viewport - might fail with extreme values
+                    # Set viewport
                     cdp.send_command('Emulation.setDeviceMetricsOverride', {
                         **viewport_params,
                         'deviceScaleFactor': 1,
@@ -503,10 +518,10 @@ def capture_screenshot():
             if 'result' in result and 'data' in result['result']:
                 img_data = base64.b64decode(result['result']['data'])
 
-                # Try to determine MIME type, fallback to png
+                # Set MIME type
                 mime_type = f'image/{format_type}'
-                if format_type not in ['png', 'jpeg', 'webp']:
-                    mime_type = 'image/png'  # Chrome probably converted it
+                if format_type == 'webp':
+                    mime_type = 'image/webp'
 
                 return Response(img_data, mimetype=mime_type)
             else:
@@ -514,6 +529,9 @@ def capture_screenshot():
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -531,7 +549,7 @@ def capture_screenshot():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "parameters": dict(request.args),
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
@@ -539,30 +557,28 @@ def capture_screenshot():
 @browser_routes.route('/cdp/drag', methods=['POST'])
 def drag_element():
     """
-    Drag and drop operation - RAW coordinates
+    Drag and drop operation
 
     @route POST /cdp/drag
     @param {number} from_x - Start X coordinate
     @param {number} from_y - Start Y coordinate
     @param {number} to_x - End X coordinate
     @param {number} to_y - End Y coordinate
-    @param {number} [duration] - Drag duration in ms
-    @returns {object} Drag result or crash data
+    @param {number} [duration] - Drag duration in ms (0-10000, default: 500)
+    @returns {object} Drag result
 
     @example
     // Normal drag
     {"from_x": 100, "from_y": 200, "to_x": 300, "to_y": 400}
 
-    // Extreme coordinates
-    {"from_x": -999999, "from_y": 999999, "to_x": 0, "to_y": 0}
+    // Slow drag with delay
+    {"from_x": 100, "from_y": 200, "to_x": 300, "to_y": 400, "duration": 2000}
     """
     try:
         data = request.get_json() or {}
-        from_x = data.get('from_x', 0)
-        from_y = data.get('from_y', 0)
-        to_x = data.get('to_x', 100)
-        to_y = data.get('to_y', 100)
-        duration = data.get('duration', 500)  # Could be negative, huge
+        from_x, from_y = validate_coordinates(data.get('from_x', 0), data.get('from_y', 0))
+        to_x, to_y = validate_coordinates(data.get('to_x', 100), data.get('to_y', 100))
+        duration = validate_integer_param(data.get('duration', 500), 'duration', min_val=0, max_val=10000)
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -608,6 +624,9 @@ def drag_element():
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
         crash_data = crash_reporter.report_crash(
             operation="drag",
@@ -618,6 +637,6 @@ def drag_element():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "drag_params": data,
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500

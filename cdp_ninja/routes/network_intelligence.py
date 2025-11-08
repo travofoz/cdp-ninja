@@ -4,9 +4,13 @@ Patient intelligence gathering via Network domain monitoring and analysis
 """
 
 import logging
+import json
 from flask import Blueprint, jsonify, request
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_integer_param, javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 network_intelligence_routes = Blueprint('network_intelligence', __name__)
@@ -42,10 +46,18 @@ def analyze_network_timing():
     // Detailed timing breakdown
     POST {"detailed": true, "limit": 5}
     """
+    # Initialize variables before try block to prevent NameError in exception handler
+    url_filter = ''
+    limit = 100
+    detailed = False
+
     try:
         params = _parse_request_params(request, ['url_filter', 'limit', 'detailed'])
         url_filter = params['url_filter'] or ''
-        limit = int(params['limit'] or 100)
+        try:
+            limit = int(params['limit'] or 100)
+        except (ValueError, TypeError):
+            limit = 100
         detailed = params['detailed'] in [True, 'true', '1']
 
         pool = get_global_pool()
@@ -63,8 +75,8 @@ def analyze_network_timing():
                         .concat(performance.getEntriesByType('resource'));
 
                     let filtered = entries;
-                    if ('{url_filter}') {{
-                        filtered = entries.filter(entry => entry.name.includes('{url_filter}'));
+                    if ({javascript_safe_value(url_filter)}) {{
+                        filtered = entries.filter(entry => entry.name.includes({javascript_safe_value(url_filter)}));
                     }}
 
                     const results = filtered.slice(0, {limit}).map(entry => {{
@@ -103,7 +115,7 @@ def analyze_network_timing():
                     return {{
                         requests: results,
                         statistics: stats,
-                        filter_applied: '{url_filter}',
+                        filter_applied: {javascript_safe_value(url_filter)},
                         detailed_timing: {str(detailed).lower()}
                     }};
                 }})()
@@ -202,7 +214,7 @@ def monitor_websockets():
                                         binary_type: ws.binaryType
                                     }};
 
-                                    if (!'{url_filter}' || ws.url.includes('{url_filter}')) {{
+                                    if (!{javascript_safe_value(url_filter)} || ws.url.includes({javascript_safe_value(url_filter)})) {{
                                         if (!{str(active_only).lower()} || ws.readyState === 1) {{
                                             wsConnections.push(connection);
                                         }}
@@ -217,7 +229,7 @@ def monitor_websockets():
                         return {{
                             connections: wsConnections,
                             info: wsInfo,
-                            filter_applied: '{url_filter}',
+                            filter_applied: {javascript_safe_value(url_filter)},
                             active_only: {str(active_only).lower()},
                             message_limit: {message_limit}
                         }};
@@ -226,7 +238,7 @@ def monitor_websockets():
                     return {{
                         connections: [],
                         info: {{ message: "WebSocket not available or no connections found" }},
-                        filter_applied: '{url_filter}',
+                        filter_applied: {javascript_safe_value(url_filter)},
                         active_only: {str(active_only).lower()}
                     }};
                 }})()
@@ -311,8 +323,8 @@ def analyze_cache():
                     const resources = performance.getEntriesByType('resource');
 
                     let filtered = resources;
-                    if ('{url_filter}') {{
-                        filtered = resources.filter(r => r.name.includes('{url_filter}'));
+                    if ({javascript_safe_value(url_filter)}) {{
+                        filtered = resources.filter(r => r.name.includes({javascript_safe_value(url_filter)}));
                     }}
 
                     const cache_analysis = {{
@@ -461,7 +473,7 @@ def detect_cors_violations():
                                     type: 'cross-origin'
                                 }};
 
-                                if (!'{origin_filter}' || resourceOrigin.includes('{origin_filter}')) {{
+                                if (!{javascript_safe_value(origin_filter)} || resourceOrigin.includes({javascript_safe_value(origin_filter)})) {{
                                     corsAnalysis.cross_origin_requests.push(request_info);
                                     corsAnalysis.summary.total_cross_origin++;
                                 }}
