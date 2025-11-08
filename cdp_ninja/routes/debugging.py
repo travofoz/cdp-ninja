@@ -1,13 +1,17 @@
 """
-Debugging Routes - RAW debugging capabilities
+Debugging Routes - RAW debugging capabilities with input validation
 Console, network, JavaScript execution, performance monitoring
-No limits, no validation - everything goes through raw
+Validates bounds and types while allowing raw JavaScript execution
 """
 
 import logging
 from flask import Blueprint, jsonify, request, current_app
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_timeout, validate_integer_param, validate_boolean_param,
+    validate_array_param, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 debugging_routes = Blueprint('debugging', __name__)
@@ -16,12 +20,12 @@ debugging_routes = Blueprint('debugging', __name__)
 @debugging_routes.route('/cdp/execute', methods=['POST'])
 def execute_javascript():
     """
-    Execute ANY JavaScript in page context - COMPLETELY RAW
+    Execute ANY JavaScript in page context with timeout validation
 
     @route POST /cdp/execute
     @param {string} code - ANY JavaScript, including injection attempts
     @param {boolean} [await] - Wait for promises to resolve
-    @param {number} [timeout] - Execution timeout in ms (user controlled)
+    @param {number} [timeout] - Execution timeout in ms (0-600000, default: 30000)
     @param {boolean} [return_by_value] - Return value instead of object reference
     @returns {object} Whatever Chrome returns (or crashes)
 
@@ -43,13 +47,14 @@ def execute_javascript():
     """
     try:
         # Try JSON first, fallback to raw text for easier usage
+        data = None
         try:
             data = request.get_json()
             if data:
                 code = data.get('code', '') or data.get('expression', '')
-                await_promise = data.get('await', False)
-                timeout = data.get('timeout', 30000)
-                return_by_value = data.get('return_by_value', False)
+                await_promise = validate_boolean_param(data.get('await', False))
+                timeout = validate_timeout(data.get('timeout', 30000))
+                return_by_value = validate_boolean_param(data.get('return_by_value', False))
             else:
                 raise ValueError("No JSON data")
         except (ValueError, TypeError):
@@ -89,9 +94,12 @@ def execute_javascript():
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
         # Handle case where data wasn't set due to JSON parsing failure
-        safe_data = locals().get('data', {})
+        safe_data = data if data else {}
         crash_data = crash_reporter.report_crash(
             operation="execute_javascript",
             error=e,
@@ -122,11 +130,11 @@ def execute_javascript():
 @debugging_routes.route('/cdp/console/logs', methods=['GET'])
 def get_console_logs():
     """
-    Get console output from page - ALL messages, no filtering
+    Get console output from page with validated parameters
 
     @route GET /cdp/console/logs
-    @param {number} [limit] - Max entries to return (default: 100)
-    @param {string} [level] - Filter by level (but we don't validate it)
+    @param {number} [limit] - Max entries to return (1-10000, default: 100)
+    @param {string} [level] - Filter by level (log, info, warning, error)
     @returns {array} All console messages including errors, warnings, etc.
 
     @example
@@ -136,19 +144,12 @@ def get_console_logs():
     // Get more logs
     GET /cdp/console/logs?limit=500
 
-    // Try to filter (might not work if invalid level)
-    GET /cdp/console/logs?level=invalid_level
+    // Try to filter by level
+    GET /cdp/console/logs?level=error
     """
     try:
-        limit = request.args.get('limit', 100)
-        level_filter = request.args.get('level')  # No validation
-
-        # Convert limit to int if possible
-        try:
-            limit = int(limit)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid limit parameter '{limit}': {e}")
-            limit = 100  # Fallback
+        limit = validate_integer_param(request.args.get('limit', 100), "limit", default=100, min_val=1, max_val=10000)
+        level_filter = request.args.get('level')  # String filter, no injection risk
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -193,6 +194,9 @@ def get_console_logs():
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -336,11 +340,11 @@ def debug_events():
 @debugging_routes.route('/cdp/network/requests', methods=['GET'])
 def get_network_requests():
     """
-    Get recent network requests with ALL details
+    Get recent network requests with validated parameters
 
     @route GET /cdp/network/requests
-    @param {number} [limit] - Max requests to return
-    @param {string} [url_filter] - Filter URLs (no validation)
+    @param {number} [limit] - Max requests to return (1-10000, default: 200)
+    @param {string} [url_filter] - Filter URLs
     @returns {array} All network requests with full details
 
     @example
@@ -354,14 +358,8 @@ def get_network_requests():
     GET /cdp/network/requests?url_filter=api
     """
     try:
-        limit = request.args.get('limit', 200)
-        url_filter = request.args.get('url_filter')
-
-        try:
-            limit = int(limit)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid limit parameter '{limit}': {e}")
-            limit = 200
+        limit = validate_integer_param(request.args.get('limit', 200), "limit", default=200, min_val=1, max_val=10000)
+        url_filter = request.args.get('url_filter')  # String filter, no injection risk
 
         pool = get_global_pool()
         cdp = pool.acquire()
@@ -433,6 +431,9 @@ def get_network_requests():
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -506,13 +507,13 @@ def block_urls():
 @debugging_routes.route('/cdp/network/throttle', methods=['POST'])
 def throttle_network():
     """
-    Simulate network conditions - ANY values allowed
+    Simulate network conditions with validated parameters
 
     @route POST /cdp/network/throttle
     @param {boolean} [offline] - Completely offline
-    @param {number} [download] - Download speed in bytes/sec (can be 0, negative)
-    @param {number} [upload] - Upload speed in bytes/sec (can be huge)
-    @param {number} [latency] - Network latency in ms (can be negative)
+    @param {number} [download] - Download speed in bytes/sec (-1 to 1000000000, -1 = no limit)
+    @param {number} [upload] - Upload speed in bytes/sec (-1 to 1000000000, -1 = no limit)
+    @param {number} [latency] - Network latency in ms (0 to 600000)
     @returns {object} Throttle result
 
     @example
@@ -530,32 +531,70 @@ def throttle_network():
     """
     try:
         data = request.get_json() or {}
+        offline = validate_boolean_param(data.get('offline', False))
+
+        # Download/upload throughput: -1 (no limit) or 0+ (bytes/sec)
+        download = data.get('download', -1)
+        upload = data.get('upload', -1)
+        latency = data.get('latency', 0)
+
+        # Validate throughput values
+        try:
+            download = int(download)
+            if download < -1:
+                raise ValidationError("download must be -1 (no limit) or >= 0")
+            if download > 1000000000:
+                raise ValidationError("download too large (max 1000000000 bytes/sec)")
+        except (ValueError, TypeError):
+            raise ValidationError(f"download must be an integer, got {download}")
+
+        try:
+            upload = int(upload)
+            if upload < -1:
+                raise ValidationError("upload must be -1 (no limit) or >= 0")
+            if upload > 1000000000:
+                raise ValidationError("upload too large (max 1000000000 bytes/sec)")
+        except (ValueError, TypeError):
+            raise ValidationError(f"upload must be an integer, got {upload}")
+
+        # Validate latency (0-600000ms = 0-10 minutes max)
+        try:
+            latency = int(latency)
+            if latency < 0:
+                raise ValidationError("latency cannot be negative")
+            if latency > 600000:
+                raise ValidationError("latency too large (max 600000ms)")
+        except (ValueError, TypeError):
+            raise ValidationError(f"latency must be an integer, got {latency}")
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Send EXACTLY what user wants - no validation
+            # Send validated network conditions
             result = cdp.send_command('Network.emulateNetworkConditions', {
-                'offline': data.get('offline', False),
-                'downloadThroughput': data.get('download', -1),  # -1 means no throttle
-                'uploadThroughput': data.get('upload', -1),
-                'latency': data.get('latency', 0)
+                'offline': offline,
+                'downloadThroughput': download,  # -1 means no throttle
+                'uploadThroughput': upload,
+                'latency': latency
             })
 
             return jsonify({
                 "success": 'error' not in result,
                 "applied_conditions": {
-                    'offline': data.get('offline', False),
-                    'download': data.get('download', -1),
-                    'upload': data.get('upload', -1),
-                    'latency': data.get('latency', 0)
+                    'offline': offline,
+                    'download': download,
+                    'upload': upload,
+                    'latency': latency
                 },
                 "cdp_result": result
             })
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
