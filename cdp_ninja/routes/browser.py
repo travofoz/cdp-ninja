@@ -1,14 +1,19 @@
 """
-Browser Interaction Routes - RAW pass-through to CDP
-No validation, no sanitization, no limits
-If it crashes Chrome, that's debugging data!
+Browser Interaction Routes - Browser control with input validation
+Provides click, type, scroll, hover, drag, and screenshot functionality
 """
 
 import base64
+import json
 import logging
 from flask import Blueprint, jsonify, request, Response, current_app
 from cdp_ninja.core import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
+from cdp_ninja.routes.input_validation import (
+    validate_selector, validate_coordinate, validate_coordinates,
+    validate_text_input, validate_integer_param, validate_boolean_param,
+    validate_timeout, javascript_safe_value, ValidationError
+)
 
 logger = logging.getLogger(__name__)
 browser_routes = Blueprint('browser', __name__)
@@ -17,31 +22,28 @@ browser_routes = Blueprint('browser', __name__)
 @browser_routes.route('/cdp/click', methods=['POST'])
 def click_element():
     """
-    Click on element by selector or coordinates - RAW mode
+    Click on element by selector or coordinates
 
     @route POST /cdp/click
-    @param {string} [selector] - ANY selector, malformed or not
-    @param {number} [x] - ANY x coordinate, can be negative/huge
-    @param {number} [y] - ANY y coordinate, can be negative/huge
-    @param {string} [button] - Mouse button (left/right/middle)
-    @param {number} [clickCount] - Number of clicks
-    @returns {object} Whatever Chrome returns (or crashes)
+    @param {string} [selector] - CSS selector for element to click
+    @param {number} [x] - X coordinate for click
+    @param {number} [y] - Y coordinate for click
+    @param {string} [button] - Mouse button: left, right, middle (default: left)
+    @param {number} [clickCount] - Number of clicks (default: 1)
+    @returns {object} Click result
 
     @example
-    // Normal click
+    // Click by selector
     {"selector": "#submit-button"}
 
-    // Injection attempt - we WANT to test this
-    {"selector": "';alert('xss')//"}
+    // Click by coordinates
+    {"x": 100, "y": 200}
 
-    // Malformed selector - see if Chrome handles it
-    {"selector": ">>>>invalid>>>>"}
+    // Right-click
+    {"selector": "#menu", "button": "right"}
 
-    // Extreme coordinates - test bounds
-    {"x": 999999999, "y": -999999999}
-
-    // Rapid multi-click
-    {"selector": "#button", "clickCount": 10}
+    // Double-click
+    {"selector": "#button", "clickCount": 2}
     """
     try:
         data = request.get_json() or {}
@@ -55,20 +57,20 @@ def click_element():
 
         try:
             if 'selector' in data:
-                # RAW selector, no escaping, no validation
-                selector = data['selector']  # Could be anything!
+                # Validate selector
+                selector = validate_selector(data['selector'])
                 button = data.get('button', 'left')
-                click_count = data.get('clickCount', 1)
+                click_count = validate_integer_param(data.get('clickCount', 1), 'clickCount', min_val=1, max_val=100)
 
-                # Send EXACTLY what user provided - no safety checks
+                # Use JSON encoding for safe string interpolation
                 code = f"""
                     (() => {{
-                        const el = document.querySelector('{selector}');
+                        const el = document.querySelector({javascript_safe_value(selector)});
                         if (el) {{
                             el.click();
-                            return {{success: true, selector: '{selector}'}};
+                            return {{success: true, selector: {javascript_safe_value(selector)}}};
                         }}
-                        return {{success: false, error: 'Element not found', selector: '{selector}'}};
+                        return {{success: false, error: 'Element not found', selector: {javascript_safe_value(selector)}}};
                     }})()
                 """
 
@@ -78,11 +80,10 @@ def click_element():
                 })
 
             elif 'x' in data and 'y' in data:
-                # RAW coordinates, could be negative, huge, non-numeric
-                x = data['x']  # Whatever they sent, no validation
-                y = data['y']  # Could be string, negative, huge
+                # Validate coordinates
+                x, y = validate_coordinates(data['x'], data['y'])
                 button = data.get('button', 'left')
-                click_count = data.get('clickCount', 1)
+                click_count = validate_integer_param(data.get('clickCount', 1), 'clickCount', min_val=1, max_val=100)
 
                 # Mouse press
                 result = cdp.send_command('Input.dispatchMouseEvent', {
@@ -106,15 +107,17 @@ def click_element():
                         result = {"success": True, "clicked": [x, y], "button": button}
 
             else:
-                result = {"error": "Need selector or x,y coordinates"}
+                return jsonify({"error": "Must provide either selector or x,y coordinates"}), 400
 
             return jsonify(result)
 
         finally:
             pool.release(cdp)
 
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
+
     except Exception as e:
-        # Log the crash but return the error - this is debugging data!
         crash_data = crash_reporter.report_crash(
             operation="click",
             error=e,
@@ -133,51 +136,49 @@ def click_element():
 @browser_routes.route('/cdp/type', methods=['POST'])
 def type_text():
     """
-    Type text into element or focused input - RAW mode
+    Type text into element or focused input
 
     @route POST /cdp/type
-    @param {string} text - ANY text, including control characters
+    @param {string} text - Text to type (max 100,000 characters)
     @param {string} [selector] - Element to focus first (optional)
-    @param {number} [delay] - Delay between characters in ms
-    @returns {object} Success status or crash data
+    @param {number} [delay] - Delay between characters in ms (0-1000)
+    @returns {object} Success status
 
     @example
-    // Normal typing
+    // Type into field
     {"text": "hello world", "selector": "#input"}
 
-    // Special characters - test edge cases
-    {"text": "\\n\\t\\r\\0"}
-
-    // Huge text - test limits
-    {"text": "A".repeat(100000)}
-
-    // Control characters
-    {"text": "\\u0000\\u0001\\u0002"}
+    // Type with delay for slow text entry
+    {"text": "password123", "delay": 50}
     """
     try:
         data = request.get_json() or {}
-        text = data.get('text', '')  # Could be empty, huge, contain anything
+        text = validate_text_input(data.get('text', ''), 'text')
         selector = data.get('selector')
-        delay = data.get('delay', 0)  # User-controlled delay
+        delay = validate_integer_param(data.get('delay', 0), 'delay', min_val=0, max_val=1000)
 
         pool = get_global_pool()
         cdp = pool.acquire()
 
         try:
-            # Focus element if selector provided (no validation)
+            # Focus element if selector provided
             if selector:
-                focus_code = f"document.querySelector('{selector}').focus()"
+                validate_selector(selector)
+                focus_code = f"document.querySelector({javascript_safe_value(selector)}).focus()"
                 cdp.send_command('Runtime.evaluate', {'expression': focus_code})
 
             # Type each character with optional delay
+            typed_count = 0
             for char in text:
                 result = cdp.send_command('Input.dispatchKeyEvent', {
                     'type': 'char',
-                    'text': char  # RAW character, no filtering
+                    'text': char
                 })
 
                 if 'error' in result:
                     break
+
+                typed_count += 1
 
                 if delay > 0:
                     import time
@@ -185,13 +186,16 @@ def type_text():
 
             return jsonify({
                 "success": True,
-                "typed": text,
-                "length": len(text),
+                "typed_length": typed_count,
+                "total_length": len(text),
                 "selector": selector
             })
 
         finally:
             pool.release(cdp)
+
+    except ValidationError as e:
+        return jsonify({"error": str(e), "validation_failed": True}), 400
 
     except Exception as e:
         crash_data = crash_reporter.report_crash(
@@ -203,7 +207,7 @@ def type_text():
         return jsonify({
             "crash": True,
             "error": str(e),
-            "typed_so_far": data.get('text', '')[:100],  # First 100 chars
+            "error_type": type(e).__name__,
             "crash_id": crash_data.get('timestamp')
         }), 500
 
