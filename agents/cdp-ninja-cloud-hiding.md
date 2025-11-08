@@ -114,25 +114,43 @@ curl "http://localhost:8888/cdp/background_fetch?active=true&timing=true"
 ```bash
 # Memory leak detection helpers
 curl -X POST "http://localhost:8888/cdp/memory/force_gc"
-curl "http://localhost:8888/cdp/memory/heap_snapshot?compare_to_previous=true"
+curl "http://localhost:8888/cdp/memory/heap_snapshot?compare_to_previous=true&leak_detection=true"
+curl "http://localhost:8888/cdp/memory/growth?trend_minutes=5&analysis=complete"
+
+# Detached DOM node detection
+curl "http://localhost:8888/cdp/memory/detached_nodes?count=true&details=true"
 
 # Event listener leak detection
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "Object.keys(getEventListeners(document.body)).length"}'
 
+curl "http://localhost:8888/cdp/memory/event_listeners?cleanup_needed=check"
+
 # Performance observer setup
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "new PerformanceObserver(list => console.log(\"CloudHiding:\", list.getEntries())).observe({entryTypes: [\"measure\", \"navigation\", \"resource\"]})"}'
 
-# Long task monitoring
+# Long task monitoring and analysis
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "new PerformanceObserver(list => console.log(\"LongTasks:\", list.getEntries())).observe({entryTypes: [\"longtask\"]})"}'
 
-# Layout thrashing detection
-curl "http://localhost:8888/cdp/performance/layout_instability?cls_analysis=true"
+curl "http://localhost:8888/cdp/performance/long_tasks?threshold=50&list=true"
+
+# Layout thrashing detection and analysis
+curl "http://localhost:8888/cdp/performance/layout_instability?cls_analysis=true&details=complete"
+curl "http://localhost:8888/cdp/performance/layout_thrashing?detection=true"
+
+# Core Web Vitals comprehensive analysis
+curl "http://localhost:8888/cdp/performance/core_vitals?all=true&details=complete"
+curl "http://localhost:8888/cdp/performance/lcp?trace=true&elements=list"
+curl "http://localhost:8888/cdp/performance/fid?history=true"
+curl "http://localhost:8888/cdp/performance/cls?sources=list"
+
+# Resource performance breakdown
+curl "http://localhost:8888/cdp/performance/resource_breakdown?by=type,domain"
 ```
 
 ### Critical Syntax Rules

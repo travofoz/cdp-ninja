@@ -71,7 +71,13 @@ The Nine Demons school masters JavaScript weapons with deadly precision. Each de
 # Console operations - ALWAYS QUOTE URLs with query params
 curl "http://localhost:8888/cdp/console/logs?level=error&limit=50"    # JS errors
 curl "http://localhost:8888/cdp/console/logs?level=warn&limit=20"     # Warnings
+curl "http://localhost:8888/cdp/console/logs?level=error&source=auth.js&limit=10" # Source-specific errors
 curl -X POST "http://localhost:8888/cdp/console/clear"                # Clear console
+
+# Error and exception tracking
+curl "http://localhost:8888/cdp/errors/exceptions?uncaught=true&limit=50"  # Uncaught exceptions
+curl "http://localhost:8888/cdp/errors/promises?rejected=true&unhandled=true" # Promise rejections
+curl "http://localhost:8888/cdp/runtime/stack?current=true"           # Current stack context
 
 # JavaScript execution (CRITICAL for testing and inspection)
 curl -X POST "http://localhost:8888/cdp/execute" \
@@ -83,15 +89,20 @@ curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "try { myFunction() } catch(e) { e.toString() }", "returnByValue": true}'
 
-# Variable inspection
+# Variable inspection with context
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
-  -d $'{"'expression": "JSON.stringify(window.debugState, null, 2)"}'
+  -d $'{"'expression": "JSON.stringify(window.debugState, null, 2)", "returnByValue": true}'
 
-# Function availability check
+# Function availability and type check
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "typeof myFunction === \"function\" ? \"available\" : \"missing\""}'
+
+# Runtime state snapshot
+curl -X POST "http://localhost:8888/cdp/runtime/snapshot" \
+  -H "Content-Type: application/json" \
+  -d $'{"'include_globals": true, "include_scope": true}'
 ```
 
 ### Runtime Debugging Commands
