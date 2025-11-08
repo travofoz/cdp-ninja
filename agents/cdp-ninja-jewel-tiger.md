@@ -105,12 +105,18 @@ curl -X POST "http://localhost:8888/cdp/dom/is_visible" \
 
 ### Form-Specific Operations
 ```bash
-# Form field analysis
+# Form field analysis and state inspection
 curl "http://localhost:8888/cdp/form/values?selector=#registration-form"
+curl "http://localhost:8888/cdp/form/state?selector=#login-form&detailed=true"
 
+# Form validation and error state
 curl -X POST "http://localhost:8888/cdp/form/validation" \
   -H "Content-Type: application/json" \
   -d $'{"'selector": "#contact-form"}'
+
+curl -X POST "http://localhost:8888/cdp/form/errors" \
+  -H "Content-Type: application/json" \
+  -d $'{"'selector": "#registration-form", "include_hidden": true}'
 
 # Form field manipulation (observation mode - document changes)
 curl -X POST "http://localhost:8888/cdp/form/fill" \
@@ -121,38 +127,66 @@ curl -X POST "http://localhost:8888/cdp/form/fill" \
 curl -X POST "http://localhost:8888/cdp/form/submit" \
   -H "Content-Type: application/json" \
   -d $'{"'selector": "#login-form", "dryRun": true}'
+
+# Field-by-field analysis
+curl "http://localhost:8888/cdp/form/fields?selector=#login-form&details=true"
 ```
 
 ### Advanced DOM Operations
 ```bash
-# Shadow DOM access
+# Shadow DOM access and penetration
 curl -X POST "http://localhost:8888/cdp/dom/shadow" \
   -H "Content-Type: application/json" \
-  -d $'{"'selector": "my-custom-element"}'
+  -d $'{"'selector": "my-custom-element", "include_slotted": true}'
 
-# Iframe content access
+curl -X POST "http://localhost:8888/cdp/dom/shadow_tree" \
+  -H "Content-Type: application/json" \
+  -d $'{"'selector": "my-custom-element", "depth": "all"}'
+
+# Iframe content access and analysis
 curl -X POST "http://localhost:8888/cdp/dom/iframe" \
   -H "Content-Type: application/json" \
-  -d $'{"'frame": "payment-frame", "selector": ".card-input"}'
+  -d $'{"'frame": "payment-frame", "selector": ".card-input", "cross_origin": true}'
 
-# Dynamic content waiting
+curl "http://localhost:8888/cdp/dom/iframes?list=true&accessible=check"
+
+# Dynamic content waiting and detection
 curl -X POST "http://localhost:8888/cdp/dom/wait" \
   -H "Content-Type: application/json" \
   -d $'{"'selector": ".loading-complete", "timeout": 5000}'
 
-# Event listeners inspection
+curl "http://localhost:8888/cdp/dom/dynamic?detection=true&mutations=watch"
+
+# Event listeners inspection and analysis
 curl -X POST "http://localhost:8888/cdp/dom/listeners" \
   -H "Content-Type: application/json" \
-  -d $'{"'selector": ".interactive-button"}'
+  -d $'{"'selector": ".interactive-button", "include_passive": true}'
+
+curl "http://localhost:8888/cdp/dom/event_flow?trace=true&bubbling=check"
 
 # Element hierarchy and relationships
 curl -X POST "http://localhost:8888/cdp/dom/parent" \
   -H "Content-Type: application/json" \
-  -d $'{"'selector": ".error-message"}'
+  -d $'{"'selector": ".error-message", "all_ancestors": true}'
 
 curl -X POST "http://localhost:8888/cdp/dom/siblings" \
   -H "Content-Type: application/json" \
-  -d $'{"'selector": ".form-field"}'
+  -d $'{"'selector": ".form-field", "include_text": true}'
+
+curl -X POST "http://localhost:8888/cdp/dom/children" \
+  -H "Content-Type: application/json" \
+  -d $'{"'selector": ".container", "recursive": true}'
+
+# DOM tree visualization and analysis
+curl "http://localhost:8888/cdp/dom/tree?selector=body&format=visual"
+curl "http://localhost:8888/cdp/dom/structure?analysis=complete"
+
+# Element scrolling and visibility context
+curl -X POST "http://localhost:8888/cdp/dom/scroll_into_view" \
+  -H "Content-Type: application/json" \
+  -d $'{"'selector": ".target-element", "smooth": true}'
+
+curl "http://localhost:8888/cdp/dom/viewport?visibility=check&in_view=list"
 ```
 
 ### Critical Syntax Rules

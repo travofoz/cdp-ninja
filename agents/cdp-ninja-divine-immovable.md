@@ -98,26 +98,42 @@ curl -X POST "http://localhost:8888/cdp/execute" \
 # Safe error simulation for testing recovery
 curl -X POST "http://localhost:8888/cdp/errors/simulate" \
   -H "Content-Type: application/json" \
-  -d $'{"'type": "network", "endpoint": "/api/test", "errorCode": 500}'
+  -d $'{"'type": "network", "endpoint": "/api/test", "errorCode": 500, "safe": true}'
 
 curl -X POST "http://localhost:8888/cdp/errors/simulate" \
   -H "Content-Type: application/json" \
-  -d $'{"'type": "javascript", "error": "TypeError", "safe": true}'
+  -d $'{"'type": "javascript", "error": "TypeError", "safe": true, "trace": true}'
+
+# Error boundary detection and testing
+curl "http://localhost:8888/cdp/errors/boundaries?framework=react&coverage=check"
+curl -X POST "http://localhost:8888/cdp/errors/boundary_test" \
+  -H "Content-Type: application/json" \
+  -d $'{"'component": "PaymentForm", "safe": true}'
 
 # Recovery mechanism testing
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "try { throw new Error(\"Test recovery\") } catch(e) { \"Recovery tested\" }"}'
 
-# State corruption simulation
+curl "http://localhost:8888/cdp/errors/recovery_mechanisms?status=true"
+
+# State corruption simulation with recovery validation
 curl -X POST "http://localhost:8888/cdp/state/corrupt" \
   -H "Content-Type: application/json" \
-  -d $'{"'component": "userSession", "recovery": true}'
+  -d $'{"'component": "userSession", "recovery": true, "validate": true}'
 
-# Fallback UI testing
+curl "http://localhost:8888/cdp/state/integrity?check=complete"
+
+# Fallback UI testing and validation
 curl -X POST "http://localhost:8888/cdp/errors/trigger_fallback" \
   -H "Content-Type: application/json" \
-  -d $'{"'component": "PaymentForm", "fallbackType": "offline"}'
+  -d $'{"'component": "PaymentForm", "fallbackType": "offline", "validate": true}'
+
+curl "http://localhost:8888/cdp/errors/fallback_status?all=true"
+
+# Error log and history analysis
+curl "http://localhost:8888/cdp/errors/log?limit=100&timeframe=1h"
+curl "http://localhost:8888/cdp/errors/histogram?groupby=type,component"
 ```
 
 ### Recovery Strategy Validation

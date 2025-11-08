@@ -95,13 +95,17 @@ curl "http://localhost:8888/cdp/network/requests?type=script,stylesheet,image"
 # Request/response payload analysis
 curl -X POST "http://localhost:8888/cdp/network/inspect" \
   -H "Content-Type: application/json" \
-  -d $'{"'requestId": "12345.67", "includeBody": true}'
+  -d $'{"'requestId": "12345.67", "includeBody": true, "headers": true}'
 
-# WebSocket monitoring
-curl "http://localhost:8888/cdp/network/websockets?active=true"
+curl "http://localhost:8888/cdp/network/request_detail?id=12345.67&payloads=true"
+
+# WebSocket monitoring and analysis
+curl "http://localhost:8888/cdp/network/websockets?active=true&statistics=true"
 curl -X POST "http://localhost:8888/cdp/network/websocket/messages" \
   -H "Content-Type: application/json" \
-  -d $'{"'connectionId": "ws-123", "limit": 50}'
+  -d $'{"'connectionId": "ws-123", "limit": 50, "timestamps": true}'
+
+curl "http://localhost:8888/cdp/network/websocket/health?active=true"
 
 # Network throttling and simulation
 curl -X POST "http://localhost:8888/cdp/network/throttle" \
@@ -110,16 +114,27 @@ curl -X POST "http://localhost:8888/cdp/network/throttle" \
 
 curl -X POST "http://localhost:8888/cdp/network/offline" \
   -H "Content-Type: application/json" \
-  -d $'{"'offline": true}'
+  -d $'{"'offline": true, "duration": 5000}'
 
 # Request blocking and filtering
 curl -X POST "http://localhost:8888/cdp/network/block" \
   -H "Content-Type: application/json" \
   -d $'{"'patterns": ["*://ads.*", "*/analytics.js", "*tracking*"]}'
 
-# Cache analysis
-curl "http://localhost:8888/cdp/network/cache?hit_ratio=true"
-curl "http://localhost:8888/cdp/network/requests?from_cache=false"
+curl "http://localhost:8888/cdp/network/blocked?list=true"
+
+# Cache analysis and optimization
+curl "http://localhost:8888/cdp/network/cache?hit_ratio=true&details=true"
+curl "http://localhost:8888/cdp/network/cache/strategy?analysis=complete"
+curl "http://localhost:8888/cdp/network/requests?from_cache=false&optimization=suggest"
+
+# Resource timing and critical path
+curl "http://localhost:8888/cdp/network/critical_path?trace=true"
+curl "http://localhost:8888/cdp/network/waterfall?format=json&details=true"
+
+# DNS and connection timing
+curl "http://localhost:8888/cdp/network/dns?timing=true&cache=check"
+curl "http://localhost:8888/cdp/network/connections?active=list&metrics=true"
 ```
 
 ### Security and Headers Analysis

@@ -109,30 +109,44 @@ curl -X POST "http://localhost:8888/cdp/accessibility/landmarks" \
 
 ### Advanced Accessibility Testing
 ```bash
-# ARIA and semantic markup validation
+# ARIA and semantic markup comprehensive validation
+curl "http://localhost:8888/cdp/accessibility/aria_validation?comprehensive=true&issues=list"
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "Array.from(document.querySelectorAll(\"[aria-*]\")).map(el => ({tag: el.tagName, aria: Array.from(el.attributes).filter(a => a.name.startsWith(\"aria-\")).map(a => a.name)}))"}'
 
-# Focus management testing
+# Focus management testing and validation
+curl "http://localhost:8888/cdp/accessibility/focus_management?validation=true"
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "document.activeElement ? {tag: document.activeElement.tagName, id: document.activeElement.id, class: document.activeElement.className} : \"no focus\""}'
 
-# Heading structure analysis
+# Heading structure and semantic hierarchy analysis
+curl "http://localhost:8888/cdp/accessibility/heading_structure?hierarchy=check"
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "Array.from(document.querySelectorAll(\"h1,h2,h3,h4,h5,h6\")).map(h => ({level: h.tagName, text: h.textContent.trim().substring(0,50)}))"}'
 
-# Alternative text and media accessibility
+# Alternative text and media accessibility audit
+curl "http://localhost:8888/cdp/accessibility/alt_text?missing=list&icons=check"
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "Array.from(document.images).filter(img => !img.alt || img.alt.trim() === \"\").length"}'
 
-# Skip links and landmark navigation
+# Skip links and landmark navigation validation
+curl "http://localhost:8888/cdp/accessibility/landmarks?navigation=check&completeness=true"
 curl -X POST "http://localhost:8888/cdp/execute" \
   -H "Content-Type: application/json" \
   -d $'{"'expression": "document.querySelector(\"a[href^=\\\"#\\\"]\") ? \"skip links present\" : \"no skip links\""}'
+
+# Form label associations and accessibility
+curl "http://localhost:8888/cdp/accessibility/form_labels?association=check&missing=list"
+
+# Motion and animation accessibility
+curl "http://localhost:8888/cdp/accessibility/motion?reduced_motion=check&animations=validate"
+
+# Text readability and content accessibility
+curl "http://localhost:8888/cdp/accessibility/readability?level=check&contrast_detail=true"
 ```
 
 ### Critical Syntax Rules

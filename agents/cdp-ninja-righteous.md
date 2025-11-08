@@ -119,18 +119,32 @@ curl -X POST "http://localhost:8888/cdp/execute" \
 # Safe vulnerability probing (no exploitation)
 curl -X POST "http://localhost:8888/cdp/security/safe_probe" \
   -H "Content-Type: application/json" \
-  -d $'{"'test_type": "xss", "payload": "safe_detection", "exploit": false}'
+  -d $'{"'test_type": "xss", "payload": "safe_detection", "exploit": false, "context_aware": true}'
 
-# Authentication boundary testing
+curl "http://localhost:8888/cdp/security/vulnerability_scan?safe=true&owasp=true"
+
+# Authentication boundary testing without privilege escalation
 curl -X POST "http://localhost:8888/cdp/security/auth_boundaries" \
   -H "Content-Type: application/json" \
-  -d $'{"'test_privilege_escalation": false, "document_only": true}'
+  -d $'{"'test_privilege_escalation": false, "document_only": true, "session_analysis": true}'
+
+curl "http://localhost:8888/cdp/security/auth_security?assessment=complete"
 
 # Data leakage detection (observation only)
-curl "http://localhost:8888/cdp/security/data_leakage?detect_only=true&no_extraction=true"
+curl "http://localhost:8888/cdp/security/data_leakage?detect_only=true&no_extraction=true&pii_scan=true"
+curl "http://localhost:8888/cdp/security/pii_exposure?locations=list&severity=assess"
 
-# Security configuration review
-curl "http://localhost:8888/cdp/security/config_review?recommendations=true&fixes=suggest"
+# Security configuration review with recommendations
+curl "http://localhost:8888/cdp/security/config_review?recommendations=true&fixes=suggest&details=complete"
+curl "http://localhost:8888/cdp/security/headers/best_practices?gaps=identify"
+
+# Dependency and supply chain security
+curl "http://localhost:8888/cdp/security/dependencies?vulnerabilities=check&audit=true"
+curl "http://localhost:8888/cdp/security/third_party/audit?comprehensive=true"
+
+# Privacy compliance and regulation assessment
+curl "http://localhost:8888/cdp/security/privacy_audit?gdpr=check&ccpa=check"
+curl "http://localhost:8888/cdp/security/compliance?frameworks=all"
 ```
 
 ### Critical Syntax Rules

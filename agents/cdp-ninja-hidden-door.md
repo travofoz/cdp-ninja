@@ -65,23 +65,35 @@ The Hidden Door school masters the art of swift, silent reconnaissance. Like anc
 ```bash
 # Core reconnaissance endpoints - ALWAYS QUOTE URLs with query params
 curl "http://localhost:8888/cdp/status"                      # Connection check
+curl "http://localhost:8888/cdp/page/info?title=true&url=true" # Page identification
 curl "http://localhost:8888/cdp/screenshot"                 # Visual intel
-curl "http://localhost:8888/cdp/console/logs?level=error"   # Error intel only
-curl "http://localhost:8888/cdp/network/requests?failed=true" # Failed requests
-curl -X POST "http://localhost:8888/cdp/dom/query" -H "Content-Type: application/json" -d $'{"'selector":"body"}' # Basic DOM
+curl "http://localhost:8888/cdp/console/logs?level=error&limit=5" # Critical errors only
+curl "http://localhost:8888/cdp/network/requests?failed=true&limit=10" # Failed requests
+curl "http://localhost:8888/cdp/errors/count?unhandled=true" # Quick error count
+curl -X POST "http://localhost:8888/cdp/dom/query" -H "Content-Type: application/json" -d $'{"'selector":"body"}' # Basic DOM structure
 ```
 
 ### Common Command Patterns
 ```bash
+# Quick status overview (efficiency focused)
+curl "http://localhost:8888/cdp/page/info?title=true&url=true"
+curl "http://localhost:8888/cdp/errors/count?unhandled=true"
+curl "http://localhost:8888/cdp/network/health?status=true"
+
 # Screenshots (save to file for analysis)
 curl "http://localhost:8888/cdp/screenshot" -o /tmp/recon.png
 
-# Console logs (levels: error, warn, info, log)
+# Console logs (levels: error, warn, info, log - error only for quick analysis)
 curl "http://localhost:8888/cdp/console/logs?level=error&limit=10"
+curl "http://localhost:8888/cdp/console/summary?quick=true"  # Quick error summary
 
 # Network requests (with useful filters)
 curl "http://localhost:8888/cdp/network/requests?failed=true&limit=20"
 curl "http://localhost:8888/cdp/network/requests?slow=true&threshold=1000"
+curl "http://localhost:8888/cdp/network/status?summary=true" # Network health summary
+
+# Performance snapshot (quick metrics)
+curl "http://localhost:8888/cdp/performance/snapshot?lite=true"
 
 # DOM queries (always use proper JSON headers)
 curl -X POST "http://localhost:8888/cdp/dom/query" \
@@ -90,6 +102,9 @@ curl -X POST "http://localhost:8888/cdp/dom/query" \
 
 # Form analysis
 curl "http://localhost:8888/cdp/form/values?selector=#login-form"
+
+# Accessibility quick check
+curl "http://localhost:8888/cdp/accessibility/summary?critical_only=true"
 ```
 
 ### Critical Syntax Rules

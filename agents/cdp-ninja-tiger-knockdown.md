@@ -121,27 +121,39 @@ curl -X POST "http://localhost:8888/cdp/stress/navigation_storm" \
 # Random interaction chaos
 curl -X POST "http://localhost:8888/cdp/stress/chaos_monkey" \
   -H "Content-Type: application/json" \
-  -d $'{"'duration": 30000, "random_clicks": true, "random_inputs": true, "unpredictable": true}'
+  -d $'{"'duration": 30000, "random_clicks": true, "random_inputs": true, "unpredictable": true, "trace": true}'
 
-# Race condition triggering
+# Race condition triggering and detection
 curl -X POST "http://localhost:8888/cdp/stress/race_conditions" \
   -H "Content-Type: application/json" \
-  -d $'{"'async_operations": true, "timing_attacks": true, "concurrent_mutations": true}'
+  -d $'{"'async_operations": true, "timing_attacks": true, "concurrent_mutations": true, "detection": true}'
 
-# State corruption assault
+curl "http://localhost:8888/cdp/stress/race_detection?analysis=true"
+
+# State corruption assault with impact analysis
 curl -X POST "http://localhost:8888/cdp/stress/state_corruption" \
   -H "Content-Type: application/json" \
-  -d $'{"'target": "userSession", "invalid_data": true, "timing_manipulation": true}'
+  -d $'{"'target": "userSession", "invalid_data": true, "timing_manipulation": true, "impact": true}'
 
-# Environmental stress simulation
+# Environmental stress simulation with recovery testing
 curl -X POST "http://localhost:8888/cdp/stress/environment_chaos" \
   -H "Content-Type: application/json" \
-  -d $'{"'slow_network": true, "connection_drops": true, "limited_memory": true}'
+  -d $'{"'slow_network": true, "connection_drops": true, "limited_memory": true, "recovery_check": true}'
 
-# Multi-vector coordinated assault
+# Multi-vector coordinated assault with detailed monitoring
 curl -X POST "http://localhost:8888/cdp/stress/full_assault" \
   -H "Content-Type: application/json" \
-  -d $'{"'memory": true, "cpu": true, "network": true, "interactions": true, "duration": 15000}'
+  -d $'{"'memory": true, "cpu": true, "network": true, "interactions": true, "duration": 15000, "detailed_report": true}'
+
+# Concurrent user simulation
+curl -X POST "http://localhost:8888/cdp/stress/concurrent_users" \
+  -H "Content-Type: application/json" \
+  -d $'{"'count": 10, "duration": 30000, "collision_detection": true}'
+
+# Progressive degradation testing
+curl -X POST "http://localhost:8888/cdp/stress/progressive_degradation" \
+  -H "Content-Type: application/json" \
+  -d $'{"'start_load": 1, "step": 1, "until_failure": true, "metrics": true}'
 ```
 
 ### Critical Syntax Rules
