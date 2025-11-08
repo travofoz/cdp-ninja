@@ -10,10 +10,10 @@ from flask import Blueprint, jsonify, request
 from cdp_ninja.core.cdp_pool import get_global_pool
 from cdp_ninja.core.domain_manager import CDPDomain
 from cdp_ninja.routes.route_utils import (
-from cdp_ninja.templates.performance_js import PerformanceJSTemplates
     ensure_domain_available, create_domain_error_response, create_success_response,
     handle_cdp_error, parse_request_params, track_endpoint_usage, PERFORMANCE_DOMAINS
 )
+from cdp_ninja.templates.performance_js import PerformanceJSTemplates
 
 logger = logging.getLogger(__name__)
 performance_routes = Blueprint('performance', __name__)

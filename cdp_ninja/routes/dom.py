@@ -5,13 +5,13 @@ Safe DOM querying, modification, and form handling
 
 import logging
 from flask import Blueprint, jsonify, request
-from cdp_ninja.core import get_global_pool
+from cdp_ninja.core.cdp_pool import get_global_pool
 from cdp_ninja.utils.error_reporter import crash_reporter
 from cdp_ninja.routes.input_validation import (
     validate_selector, validate_text_input, validate_boolean_param,
     validate_integer_param, validate_depth, validate_form_fields,
     validate_attributes, validate_css_property_name, validate_css_property_value,
-    javascript_safe_value, ValidationError
+    validate_array_param, javascript_safe_value, ValidationError
 )
 
 logger = logging.getLogger(__name__)

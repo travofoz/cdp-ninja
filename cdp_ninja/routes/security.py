@@ -57,8 +57,29 @@ def security_vulnerabilities():
                 if runtime_evaluate.get('success') and 'result' in runtime_evaluate:
                     target_url = runtime_evaluate['result'].get('value', 'unknown')
 
-            # Security state analysis
-            security_state = client.send_command('Security.getSecurityState')
+            # Security state analysis - get via JavaScript since Security.getSecurityState doesn't exist in CDP
+            security_state_js = """
+            (() => {
+                const state = {
+                    protocol: window.location.protocol,
+                    secure: window.location.protocol === 'https:',
+                    hostname: window.location.hostname
+                };
+
+                // Check if connection is secure
+                if (navigator.deviceMemory) {
+                    state.device_memory = navigator.deviceMemory;
+                }
+
+                return state;
+            })()
+            """
+
+            security_state_result = client.send_command('Runtime.evaluate', {
+                'expression': security_state_js,
+                'returnByValue': True
+            })
+            security_state = security_state_result.get('result', {}).get('result', {}).get('value', {})
 
             # Mixed content analysis
             mixed_content_js = """

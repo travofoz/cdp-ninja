@@ -179,19 +179,34 @@ def go_back():
         cdp = pool.acquire()
 
         try:
-            # Try CDP method first
-            result = cdp.send_command('Page.goBackInNavigationHistory')
+            # Get navigation history
+            history_result = cdp.send_command('Page.getNavigationHistory')
 
-            # If that doesn't work, try JavaScript
-            if 'error' in result:
-                js_result = cdp.send_command('Runtime.evaluate', {
+            if 'result' in history_result:
+                history_data = history_result['result']
+                current_index = history_data.get('currentIndex', -1)
+                entries = history_data.get('entries', [])
+
+                # Try to navigate to previous entry
+                if current_index > 0 and entries:
+                    prev_entry = entries[current_index - 1]
+                    result = cdp.send_command('Page.navigateToHistoryEntry', {
+                        'entryId': prev_entry.get('id')
+                    })
+                else:
+                    # Fallback to JavaScript if no previous entry
+                    result = cdp.send_command('Runtime.evaluate', {
+                        'expression': 'window.history.back(); "attempted"'
+                    })
+            else:
+                # Fallback to JavaScript
+                result = cdp.send_command('Runtime.evaluate', {
                     'expression': 'window.history.back(); "attempted"'
                 })
-                result = js_result
 
             return jsonify({
                 "success": 'error' not in result,
-                "method": "CDP" if 'Page.goBackInNavigationHistory' in str(result) else "JavaScript",
+                "method": "CDP history navigation" if 'currentIndex' in str(result) else "JavaScript",
                 "result": result
             })
 
@@ -224,19 +239,34 @@ def go_forward():
         cdp = pool.acquire()
 
         try:
-            # Try CDP method first
-            result = cdp.send_command('Page.goForwardInNavigationHistory')
+            # Get navigation history
+            history_result = cdp.send_command('Page.getNavigationHistory')
 
-            # If that doesn't work, try JavaScript
-            if 'error' in result:
-                js_result = cdp.send_command('Runtime.evaluate', {
+            if 'result' in history_result:
+                history_data = history_result['result']
+                current_index = history_data.get('currentIndex', -1)
+                entries = history_data.get('entries', [])
+
+                # Try to navigate to next entry
+                if current_index >= 0 and current_index < len(entries) - 1 and entries:
+                    next_entry = entries[current_index + 1]
+                    result = cdp.send_command('Page.navigateToHistoryEntry', {
+                        'entryId': next_entry.get('id')
+                    })
+                else:
+                    # Fallback to JavaScript if no next entry
+                    result = cdp.send_command('Runtime.evaluate', {
+                        'expression': 'window.history.forward(); "attempted"'
+                    })
+            else:
+                # Fallback to JavaScript
+                result = cdp.send_command('Runtime.evaluate', {
                     'expression': 'window.history.forward(); "attempted"'
                 })
-                result = js_result
 
             return jsonify({
                 "success": 'error' not in result,
-                "method": "CDP" if 'Page.goForwardInNavigationHistory' in str(result) else "JavaScript",
+                "method": "CDP history navigation" if 'currentIndex' in str(result) else "JavaScript",
                 "result": result
             })
 
