@@ -7,7 +7,7 @@ Using Performance domain for Core Web Vitals and profiling
 import logging
 import json
 from flask import Blueprint, jsonify, request
-from cdp_ninja.core import get_global_pool
+from cdp_ninja.core.cdp_pool import get_global_pool
 from cdp_ninja.core.domain_manager import CDPDomain
 from cdp_ninja.routes.route_utils import (
     ensure_domain_available, create_domain_error_response, create_success_response,
@@ -47,7 +47,10 @@ def collect_performance_metrics():
         include_paint = params['include_paint'] in [True, 'true', '1']
         include_navigation = params['include_navigation'] in [True, 'true', '1']
         include_resource = params['include_resource'] in [True, 'true', '1']
-        duration = int(params['duration'] or 3)
+        try:
+            duration = int(params['duration'] or 3)
+        except (ValueError, TypeError):
+            duration = 3
 
         # Ensure required domains
         if not ensure_domain_available(CDPDomain.PERFORMANCE, "collect_performance_metrics"):
@@ -291,8 +294,14 @@ def monitor_memory_usage():
     """
     try:
         params = parse_request_params(request, ['monitoring_duration', 'sample_interval', 'track_allocations', 'detect_leaks'])
-        monitoring_duration = int(params['monitoring_duration'] or 10)
-        sample_interval = int(params['sample_interval'] or 500)
+        try:
+            monitoring_duration = int(params['monitoring_duration'] or 10)
+        except (ValueError, TypeError):
+            monitoring_duration = 10
+        try:
+            sample_interval = int(params['sample_interval'] or 500)
+        except (ValueError, TypeError):
+            sample_interval = 500
         track_allocations = params['track_allocations'] in [True, 'true', '1']
         detect_leaks = params['detect_leaks'] in [True, 'true', '1']
 
@@ -547,7 +556,10 @@ def analyze_rendering_performance():
     """
     try:
         params = parse_request_params(request, ['monitoring_duration', 'track_frame_rate', 'analyze_paint_events', 'detect_jank'])
-        monitoring_duration = int(params['monitoring_duration'] or 5)
+        try:
+            monitoring_duration = int(params['monitoring_duration'] or 5)
+        except (ValueError, TypeError):
+            monitoring_duration = 5
         track_frame_rate = params['track_frame_rate'] in [True, 'true', '1']
         analyze_paint_events = params['analyze_paint_events'] in [True, 'true', '1']
         detect_jank = params['detect_jank'] in [True, 'true', '1']
@@ -837,7 +849,10 @@ def profile_cpu_usage():
     """
     try:
         data = request.get_json() or {}
-        profiling_duration = int(data.get('profiling_duration', 5))
+        try:
+            profiling_duration = int(data.get('profiling_duration', 5))
+        except (ValueError, TypeError):
+            profiling_duration = 5
         sample_stack_traces = data.get('sample_stack_traces', False)
         analyze_hot_functions = data.get('analyze_hot_functions', False)
         profiling_mode = data.get('profiling_mode', 'sampling')
@@ -1127,7 +1142,10 @@ def analyze_resource_timing():
     """
     try:
         params = parse_request_params(request, ['analysis_period', 'include_third_party', 'detect_blocking', 'resource_filter'])
-        analysis_period = int(params['analysis_period'] or 5)
+        try:
+            analysis_period = int(params['analysis_period'] or 5)
+        except (ValueError, TypeError):
+            analysis_period = 5
         include_third_party = params['include_third_party'] in [True, 'true', '1']
         detect_blocking = params['detect_blocking'] in [True, 'true', '1']
         resource_filter = params['resource_filter'] or 'all'
@@ -1445,7 +1463,10 @@ def monitor_background_tasks():
     """
     try:
         params = parse_request_params(request, ['monitoring_duration', 'track_service_workers', 'monitor_web_workers', 'detect_heavy_tasks'])
-        monitoring_duration = int(params['monitoring_duration'] or 8)
+        try:
+            monitoring_duration = int(params['monitoring_duration'] or 8)
+        except (ValueError, TypeError):
+            monitoring_duration = 8
         track_service_workers = params['track_service_workers'] in [True, 'true', '1']
         monitor_web_workers = params['monitor_web_workers'] in [True, 'true', '1']
         detect_heavy_tasks = params['detect_heavy_tasks'] in [True, 'true', '1']
@@ -2192,7 +2213,10 @@ def monitor_core_web_vitals():
     """
     try:
         params = parse_request_params(request, ['monitoring_duration', 'track_all_vitals', 'provide_recommendations', 'sample_rate'])
-        monitoring_duration = int(params['monitoring_duration'] or 10)
+        try:
+            monitoring_duration = int(params['monitoring_duration'] or 10)
+        except (ValueError, TypeError):
+            monitoring_duration = 10
         track_all_vitals = params['track_all_vitals'] in [True, 'true', '1']
         provide_recommendations = params['provide_recommendations'] in [True, 'true', '1']
         sample_rate = float(params['sample_rate'] or 1)
