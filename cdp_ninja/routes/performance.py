@@ -10,6 +10,7 @@ from flask import Blueprint, jsonify, request
 from cdp_ninja.core.cdp_pool import get_global_pool
 from cdp_ninja.core.domain_manager import CDPDomain
 from cdp_ninja.routes.route_utils import (
+from cdp_ninja.templates.performance_js import PerformanceJSTemplates
     ensure_domain_available, create_domain_error_response, create_success_response,
     handle_cdp_error, parse_request_params, track_endpoint_usage, PERFORMANCE_DOMAINS
 )
@@ -63,181 +64,13 @@ def collect_performance_metrics():
         cdp = pool.acquire()
 
         try:
-            # Performance metrics collection code
-            metrics_collection_code = f"""
-                (() => {{
-                    return new Promise((resolve) => {{
-                        const performanceData = {{
-                            collection_start: performance.now(),
-                            duration_seconds: {duration},
-                            include_paint: {str(include_paint).lower()},
-                            include_navigation: {str(include_navigation).lower()},
-                            include_resource: {str(include_resource).lower()},
-                            core_web_vitals: {{}},
-                            performance_observer_data: {{}},
-                            resource_timing: [],
-                            paint_timing: [],
-                            navigation_timing: {{}},
-                            memory_info: {{}}
-                        }};
-
-                        // Collect Core Web Vitals
-                        if (window.performance) {{
-                            // Largest Contentful Paint (LCP)
-                            if ('PerformanceObserver' in window) {{
-                                try {{
-                                    const lcpObserver = new PerformanceObserver((list) => {{
-                                        const entries = list.getEntries();
-                                        const lastEntry = entries[entries.length - 1];
-                                        performanceData.core_web_vitals.lcp = {{
-                                            value: lastEntry.startTime,
-                                            element: lastEntry.element ? lastEntry.element.tagName : null,
-                                            url: lastEntry.url || null,
-                                            timestamp: Date.now()
-                                        }};
-                                    }});
-                                    lcpObserver.observe({{entryTypes: ['largest-contentful-paint']}});
-
-                                    // First Input Delay (FID) and Interaction to Next Paint (INP)
-                                    const fidObserver = new PerformanceObserver((list) => {{
-                                        const entries = list.getEntries();
-                                        entries.forEach(entry => {{
-                                            if (entry.entryType === 'first-input') {{
-                                                performanceData.core_web_vitals.fid = {{
-                                                    value: entry.processingStart - entry.startTime,
-                                                    input_type: entry.name,
-                                                    timestamp: Date.now()
-                                                }};
-                                            }}
-                                        }});
-                                    }});
-                                    fidObserver.observe({{entryTypes: ['first-input']}});
-
-                                    // Layout Shift (CLS)
-                                    let clsValue = 0;
-                                    const clsObserver = new PerformanceObserver((list) => {{
-                                        const entries = list.getEntries();
-                                        entries.forEach(entry => {{
-                                            if (!entry.hadRecentInput) {{
-                                                clsValue += entry.value;
-                                            }}
-                                        }});
-                                        performanceData.core_web_vitals.cls = {{
-                                            value: clsValue,
-                                            timestamp: Date.now()
-                                        }};
-                                    }});
-                                    clsObserver.observe({{entryTypes: ['layout-shift']}});
-
-                                    // Store observers for cleanup
-                                    performanceData.observers = [lcpObserver, fidObserver, clsObserver];
-                                }} catch (observerError) {{
-                                    performanceData.observer_error = observerError.message;
-                                }}
-                            }}
-
-                            // Navigation Timing
-                            if ({str(include_navigation).lower()}) {{
-                                const navTiming = performance.getEntriesByType('navigation')[0];
-                                if (navTiming) {{
-                                    performanceData.navigation_timing = {{
-                                        dns_lookup: navTiming.domainLookupEnd - navTiming.domainLookupStart,
-                                        tcp_connect: navTiming.connectEnd - navTiming.connectStart,
-                                        ssl_negotiate: navTiming.connectEnd - navTiming.secureConnectionStart,
-                                        request_response: navTiming.responseEnd - navTiming.requestStart,
-                                        dom_content_loaded: navTiming.domContentLoadedEventEnd - navTiming.domContentLoadedEventStart,
-                                        load_complete: navTiming.loadEventEnd - navTiming.loadEventStart,
-                                        total_time: navTiming.loadEventEnd - navTiming.navigationStart,
-                                        redirect_time: navTiming.redirectEnd - navTiming.redirectStart,
-                                        dom_interactive: navTiming.domInteractive - navTiming.navigationStart,
-                                        first_byte: navTiming.responseStart - navTiming.navigationStart
-                                    }};
-                                }}
-                            }}
-
-                            // Paint Timing
-                            if ({str(include_paint).lower()}) {{
-                                const paintEntries = performance.getEntriesByType('paint');
-                                performanceData.paint_timing = paintEntries.map(entry => ({{
-                                    name: entry.name,
-                                    start_time: entry.startTime,
-                                    duration: entry.duration
-                                }}));
-                            }}
-
-                            // Resource Timing
-                            if ({str(include_resource).lower()}) {{
-                                const resourceEntries = performance.getEntriesByType('resource');
-                                performanceData.resource_timing = resourceEntries.slice(-20).map(entry => ({{
-                                    name: entry.name,
-                                    type: entry.initiatorType,
-                                    start_time: entry.startTime,
-                                    duration: entry.duration,
-                                    transfer_size: entry.transferSize,
-                                    encoded_size: entry.encodedBodySize,
-                                    decoded_size: entry.decodedBodySize,
-                                    cache_hit: entry.transferSize === 0 && entry.decodedBodySize > 0
-                                }}));
-                            }}
-
-                            // Memory Information
-                            if (performance.memory) {{
-                                performanceData.memory_info = {{
-                                    used_js_heap_size: performance.memory.usedJSHeapSize,
-                                    total_js_heap_size: performance.memory.totalJSHeapSize,
-                                    js_heap_size_limit: performance.memory.jsHeapSizeLimit,
-                                    heap_usage_percent: (performance.memory.usedJSHeapSize / performance.memory.totalJSHeapSize) * 100
-                                }};
-                            }}
-                        }}
-
-                        // Collect data for specified duration
-                        setTimeout(() => {{
-                            // Clean up observers
-                            if (performanceData.observers) {{
-                                performanceData.observers.forEach(observer => {{
-                                    try {{
-                                        observer.disconnect();
-                                    }} catch (e) {{
-                                        // Observer already disconnected
-                                    }}
-                                }});
-                            }}
-
-                            performanceData.collection_end = performance.now();
-                            performanceData.actual_duration_ms = performanceData.collection_end - performanceData.collection_start;
-
-                            // Performance score calculation
-                            let performanceScore = 100;
-
-                            // Deduct points based on metrics
-                            if (performanceData.core_web_vitals.lcp && performanceData.core_web_vitals.lcp.value > 2500) {{
-                                performanceScore -= 30; // Poor LCP
-                            }} else if (performanceData.core_web_vitals.lcp && performanceData.core_web_vitals.lcp.value > 1200) {{
-                                performanceScore -= 15; // Needs improvement LCP
-                            }}
-
-                            if (performanceData.core_web_vitals.fid && performanceData.core_web_vitals.fid.value > 100) {{
-                                performanceScore -= 25; // Poor FID
-                            }}
-
-                            if (performanceData.core_web_vitals.cls && performanceData.core_web_vitals.cls.value > 0.25) {{
-                                performanceScore -= 20; // Poor CLS
-                            }} else if (performanceData.core_web_vitals.cls && performanceData.core_web_vitals.cls.value > 0.1) {{
-                                performanceScore -= 10; // Needs improvement CLS
-                            }}
-
-                            performanceData.performance_score = Math.max(0, performanceScore);
-                            performanceData.performance_grade = performanceScore >= 90 ? 'A' :
-                                                              performanceScore >= 75 ? 'B' :
-                                                              performanceScore >= 60 ? 'C' :
-                                                              performanceScore >= 40 ? 'D' : 'F';
-
-                            resolve(performanceData);
-                        }}, {duration * 1000});
-                    }});
-                }})()
-            """
+            # Use template for performance metrics collection
+            metrics_collection_code = PerformanceJSTemplates.collect_performance_metrics_template(
+                duration=duration,
+                include_paint=include_paint,
+                include_navigation=include_navigation,
+                include_resource=include_resource
+            )
 
             result = cdp.send_command('Runtime.evaluate', {
                 'expression': metrics_collection_code,
