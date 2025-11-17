@@ -6,6 +6,8 @@ A lightweight Chrome DevTools Protocol bridge for browser debugging and automati
 [![Python Support](https://img.shields.io/pypi/pyversions/cdp-ninja.svg)](https://pypi.org/project/cdp-ninja/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+what follows next is claude all hopped up on w/e it is claude gets hopped up on, but w/e. I dont much care about this part. The core of it works for me so the docs and everything else is an afterthought. I just needed a cdp websocket to http REST bridge so I could use curl or have claude code agents be able to use it easily. I leave the docs as is just so you know what you are getting yourself into. I believe all the endpoints have been audited and all the agents also updated to reflect the real endpoints. I only really use a couple of the agents. This was primarily about me getting browser console.log to claude code for nextjs projects. I didnt want the dep and memory bloat of puppeteer or playwright. I just wanted to BYOB and use my current browser and not copy paste the console errors or screenshots from the browser. ymmv.
+
 ## ⚠️ SECURITY WARNING ⚠️
 
 **CDP Ninja is intentionally dangerous for security testing and fuzzing:**
@@ -143,6 +145,8 @@ This isn't just another automation tool. **CDP Ninja is pure cyberpunk reality**
 
 ### 🔥 The Documentation System is Next-Level
 
+(author note: lol fn claude) 
+
 **Auto-generated from JSDoc comments in the source code.** Not some afterthought wiki - the documentation IS the code. Change a function, run `make docs`, boom - professional API docs regenerated from the actual implementation.
 
 ```bash
@@ -160,8 +164,10 @@ Built for **remote debugging across SSH tunnels** with **Claude Code agent integ
 
 ### ⚡ The Engineering is Brutal
 
-- **24,668 lines of Python** organized into modular perfection
-- **Server.py reduced 64%** (2,781 → 995 lines) through systematic refactoring
+(author note: its probably grown a bit; i dont think any of these are really accurate anymore)
+
+- **24,668 lines of Python** organized into modular perfection 
+- **Server.py reduced 64%** (2,781 → 995 lines) through systematic refactoring 
 - **JavaScript templates extracted** - 662+ lines of reusable utilities
 - **Constants centralized** - All magic numbers in `CDPDefaults`
 - **Professional JSDoc** throughout - this is production-grade chaos
@@ -232,6 +238,8 @@ cdp-ninja-docs
 
 CDP Ninja has successfully bypassed BrowserScan.net bot detection, revealing gaps in current detection mechanisms. This tool is designed for:
 
+(author's note: it can also, incidentally, defeat all CF turnstiles and a bunch of captcha/recaptchas) 
+
 - **Defensive Security Research**: Understanding automation detection limits
 - **Responsible Disclosure**: Improving bot detection for the community
 - **Educational Purposes**: Learning browser security boundaries
@@ -241,6 +249,8 @@ CDP Ninja has successfully bypassed BrowserScan.net bot detection, revealing gap
 **They said LLMs can't code. They said AI can't build real APIs. They said we can't ship finished products.**
 
 **We built 24,668 lines of production Python. We architected 89 endpoints across 14 specialized domains. We created an automated documentation system that extracts JSDoc from source code. We designed a complete build system with Makefile integration. We shipped a browser hacking framework to PyPI.**
+
+(author's note: there might actually be more endpoints. I'd have to do more work to audit these docs and presently I'm not motivated; it works for my purposes. PR or fork it. Its MIT license.)
 
 **This isn't toy code or a demo. This is a complete, professional-grade system that gives AI agents unrestricted browser control. Zero input validation, raw CDP power, intentionally dangerous by design.**
 
