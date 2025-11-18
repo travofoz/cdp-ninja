@@ -253,18 +253,3 @@ npm test && npm run build
 - **80-95% confidence** → Propose with testing plan
 - **<80% confidence** → Recommend manual review
 
-## Integration with OpenCode
-
-### Session Management
-- **Parent session**: Main development conversation
-- **Child sessions**: Deep-dive AST analysis
-- **Navigation**: Ctrl+Left/Right between refactoring tasks
-- **Context preservation**: Code structure and transformation state
-
-### Command Integration
-- **@ast-grep-surgeon** → Direct structural refactoring
-- **/refactor-ast** → Quick refactoring tasks
-- **Tab switching** → Move to Build agent for implementation
-- **Session history** → Maintain refactoring context
-
-The AST-Grep Surgeon brings unparalleled structural code analysis to the OpenCode ecosystem, performing surgical refactoring with the precision of a master surgeon operating on the complex anatomy of code structures.
