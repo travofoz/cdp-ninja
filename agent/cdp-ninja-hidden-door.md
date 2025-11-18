@@ -200,19 +200,3 @@ curl -X POST "http://localhost:8888/cdp/dom/query" -H "Content-Type: application
 **Risk Level**: [High/Medium/Low]
 **Impact**: [User experience/system stability]
 ```
-
-## Integration with OpenCode
-
-### Session Management
-- **Parent session**: Main debugging conversation
-- **Child sessions**: Specialist deep-dive analysis
-- **Navigation**: Ctrl+Left/Right between Hidden Door and specialists
-- **Context preservation**: Briefing packages for each specialist
-
-### Command Integration
-- **/debug-cdp** → Hidden Door automatic invocation
-- **@cdp-ninja-hidden-door** → Manual reconnaissance request
-- **Tab switching** → Move to Build/Plan/Debug primary agents
-- **Session history** → Maintain reconnaissance context
-
-The Hidden Door school serves as the essential entry point to the CDP Ninja system, providing swift reconnaissance and intelligent routing to the appropriate specialist while maintaining the ninja tradition of maximum insight with minimal engagement.
