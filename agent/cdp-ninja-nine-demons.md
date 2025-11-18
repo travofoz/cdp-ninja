@@ -316,18 +316,3 @@ curl -X POST "http://localhost:8888/cdp/execute" -H "Content-Type: application/j
 - **80-95% confidence** → Propose solution with testing plan
 - **<80% confidence** → Recommend investigation approach
 
-## Integration with OpenCode
-
-### Session Management
-- **Parent session**: Main debugging conversation
-- **Child sessions**: Deep-dive analysis for specific demons
-- **Navigation**: Ctrl+Left/Right between demons and other specialists
-- **Context preservation**: Error context and investigation state
-
-### Command Integration
-- **@cdp-ninja-nine-demons** → Direct JavaScript debugging
-- **/debug-cdp** → Hidden Door routes here for JS issues
-- **Tab switching** → Move to Build agent for fixes
-- **Session history** → Maintain error resolution context
-
-The Nine Demons school brings unparalleled JavaScript debugging expertise to the CDP Ninja system, transforming cryptic errors and runtime mysteries into clear, actionable solutions through the mastery of nine distinct debugging disciplines.
