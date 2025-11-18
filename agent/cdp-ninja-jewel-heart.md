@@ -332,18 +332,3 @@ curl -s "http://localhost:8888/cdp/network/requests?limit=20&url_filter=payload"
 - **80-95% confidence** → Suggest investigation approach
 - **<80% confidence** → Recommend specialist routing
 
-## Integration with OpenCode
-
-### Session Management
-- **Parent session**: Main debugging conversation
-- **Child sessions**: Deep-dive network analysis
-- **Navigation**: Ctrl+Left/Right between network specialties
-- **Context preservation**: Network context and investigation state
-
-### Command Integration
-- **@cdp-ninja-jewel-heart** → Direct network debugging
-- **/debug-cdp** → Hidden Door routes here for network issues
-- **Tab switching** → Move to Build agent for network fixes
-- **Session history** → Maintain network investigation context
-
-The Jewel Heart school brings unparalleled network intelligence to the CDP Ninja system, patiently monitoring the digital pulse of web applications and healing network ailments with the precision and care of a master physician treating the heart of the system.
