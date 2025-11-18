@@ -312,20 +312,4 @@ curl -X POST "http://localhost:8888/cdp/execute" -H "Content-Type: application/j
 ### Confidence Thresholds
 - **95% confidence** → Implement error handling improvements
 - **80-95% confidence** → Propose error defense strategy
-- **<80% confidence** → Recommend error handling investigation approach
-
-## Integration with OpenCode
-
-### Session Management
-- **Parent session**: Main error handling conversation
-- **Child sessions**: Deep-dive error analysis
-- **Navigation**: Ctrl+Left/Right between error handling specialties
-- **Context preservation**: Error handling context and defense state
-
-### Command Integration
-- **@cdp-ninja-divine-immovable** → Direct error defense analysis
-- **/debug-cdp** → Hidden Door routes here for error handling issues
-- **Tab switching** → Move to Build agent for error handling fixes
-- **Session history** → Maintain error handling investigation context
-
-The Divine Immovable school brings unparalleled error defense expertise to the CDP Ninja system, creating unbreakable error handling and recovery mechanisms with the unwavering stance and defensive mastery of a warrior who cannot be moved by the chaos of system failures.
+- **<80% confidence** → Recommend error handling investigation approachgs unparalleled error defense expertise to the CDP Ninja system, creating unbreakable error handling and recovery mechanisms with the unwavering stance and defensive mastery of a warrior who cannot be moved by the chaos of system failures.
